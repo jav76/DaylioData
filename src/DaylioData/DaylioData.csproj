@@ -12,6 +12,9 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/jav76/DaylioData</RepositoryUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <BaseOutputPath>..\BuildResults</BaseOutputPath>
+    <UseCommonOutputDirectory>true</UseCommonOutputDirectory>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
