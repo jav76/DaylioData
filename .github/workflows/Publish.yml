@@ -1,0 +1,45 @@
+# This workflow will publish a nuget package
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: Publish
+
+on:
+  pull_request:
+    types: [ closed ]
+    branches: [ "main" ]
+
+  release:
+
+jobs:
+  if_merged:
+    if: github.event.pull_request.merged == true
+    
+    runs-on: ubuntu-latest
+    steps:
+
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Test
+      run: dotnet test --no-restore --verbosity normal
+
+    - name: Pack
+      run: dotnet pack --no-build --configuration Release --output BuildResults
+
+    - name: Push
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1
+        source-url: https://api.nuget.org/v3/index.json
+      env:
+        NUGET_API_KEY: ${{secrets.NUGET_API_KEY}}
+        run: dotnet nuget push ./BuildResults/*.nupkg --api-key $NUGET_API_KEY --source "https://api.nuget.org/v3/index.json"
