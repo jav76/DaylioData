@@ -38,4 +38,4 @@ jobs:
     - name: Push
       env:
         NUGET_AUTH_TOKEN: ${{secrets.NUGET_API_KEY}}
-      run: dotnet nuget push "./BuildResults/*.nupkg" -ConfigFile ./nuget.config
+      run: dotnet nuget push "./BuildResults/*.nupkg" --source "https://api.nuget.org/v3/index.json"
