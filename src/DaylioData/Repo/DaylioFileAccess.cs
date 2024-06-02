@@ -4,6 +4,9 @@ using System.Globalization;
 
 namespace DaylioParser.Repo
 {
+    /// <summary>
+    /// <see cref="DaylioFileAccess"/> is used for reading and parsing Daylio CSV data into memory.
+    /// </summary>
     public class DaylioFileAccess
     {
         private const string FULL_DATE_HEADER = "full_date";
