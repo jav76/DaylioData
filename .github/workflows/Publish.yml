@@ -23,8 +23,25 @@ jobs:
       with:
         dotnet-version: 8.0.x
 
-    - name: Restore dependencies
+    - name: Restore Dependencies
       run: dotnet restore
+
+    - name: Update Version Info
+      run: |
+        $projPath = "src\DaylioData\DaylioData.csproj"
+        $buildNumber = ${{ github.run_number }}
+        $content = Get-Content -path $projPath -Raw
+        if ($content -match '<AssemblyVersion>(\d+.\d+.\d+).\d+</AssemblyVersion>')
+        {
+          $newVersion = "`$1.$buildNumber"
+          $content -replace '<AssemblyVersion>\d+.\d+.\d+.\d+</AssemblyVersion>', "<AssemblyVersion>$newVersion</AssemblyVersion>" | Set-Content -Path $projPath
+        }
+        if ($content -match '<AssemblyVersion>(\d+.\d+.\d+).\d+</AssemblyVersion>')
+        {
+          $newVersion = "`$1.$buildNumber"
+          $content -replace '<Version>\d+.\d+.\d+.\d+</Version>', "<Version>$newVersion</Version>" | Set-Content -Path $projPath
+        }
+
 
     - name: Build
       run: dotnet build --configuration Release --no-restore
