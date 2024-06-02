@@ -36,12 +36,6 @@ jobs:
           $newVersion = "`$1.$buildNumber"
           $content -replace '<AssemblyVersion>\d+.\d+.\d+.\d+</AssemblyVersion>', "<AssemblyVersion>$newVersion</AssemblyVersion>" | Set-Content -Path $projPath
         }
-        if ($content -match '<AssemblyVersion>(\d+.\d+.\d+).\d+</AssemblyVersion>')
-        {
-          $newVersion = "`$1.$buildNumber"
-          $content -replace '<Version>\d+.\d+.\d+.\d+</Version>', "<Version>$newVersion</Version>" | Set-Content -Path $projPath
-        }
-
 
     - name: Build
       run: dotnet build --configuration Release --no-restore
