@@ -33,7 +33,7 @@ jobs:
         $content = Get-Content -path $projPath -Raw
         if ($content -match '<AssemblyVersion>(\d+.\d+.\d+).\d+</AssemblyVersion>')
         {
-          $newVersion = "`$1.$buildNumber"
+          $newVersion = '$1.' + $buildNumber
           $content -replace '<AssemblyVersion>\d+.\d+.\d+.\d+</AssemblyVersion>', "<AssemblyVersion>$newVersion</AssemblyVersion>" | Set-Content -Path $projPath
         }
 
