@@ -31,10 +31,10 @@ jobs:
         $projPath = "src\DaylioData\DaylioData.csproj"
         $buildNumber = ${{ github.run_number }}
         $content = Get-Content -path $projPath -Raw
-        if ($content -match '<AssemblyVersion>(\d+.\d+.\d+).\d+</AssemblyVersion>')
-        {
-          $newVersion = '$1.' + $buildNumber
-          $content -replace '<AssemblyVersion>\d+.\d+.\d+.\d+</AssemblyVersion>', "<AssemblyVersion>$newVersion</AssemblyVersion>" | Set-Content -Path $projPath
+        if ($content -match '<AssemblyVersion>(\d+.\d+.\d+).\d+</AssemblyVersion>') {
+          $version = $matches[1]
+          $fullVersion = "$version.$buildNumber"
+          $content -replace '<AssemblyVersion>\d+.\d+.\d+.\d+</AssemblyVersion>', "<AssemblyVersion>$fullVersion</AssemblyVersion>" | Set-Content -Path $projPath
         }
 
     - name: Build
