@@ -21,13 +21,13 @@ jobs:
         dotnet-version: 8.0.x
         
     - name: Restore dependencies
-      run: dotnet restore DaylioData.sln
+      run: dotnet restore src/DaylioData/DaylioData.sln
 
     - name: Build
-      run: dotnet build DaylioData.sln --configuration Release
+      run: dotnet build src/DaylioData/DaylioData.sln --configuration Release
 
     - name: Test
-      run: dotnet test DaylioData.sln --no-build --verbosity normal
+      run: dotnet test src/DaylioData/DaylioData.sln --no-build --verbosity normal
 
     - name: 'Archive Files'
       run: tar -cvf BuildResults.tar BuildResults/
