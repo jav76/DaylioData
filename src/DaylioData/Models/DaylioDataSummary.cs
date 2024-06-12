@@ -1,6 +1,4 @@
-﻿using DaylioParser;
-using DaylioParser.Models;
-using DaylioParser.Repo;
+﻿using DaylioData.Repo;
 using System.Reflection;
 using System.Text;
 

@@ -1,6 +1,6 @@
-﻿using DaylioParser.Models;
+﻿using DaylioData.Models;
 
-namespace DaylioParser.Repo
+namespace DaylioData.Repo
 {
     /// <summary>
     /// <see cref="DaylioDataRepo"/> Repository for Daylio data read from a CSV file.

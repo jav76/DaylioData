@@ -1,8 +1,8 @@
 ﻿using CsvHelper;
-using DaylioParser.Models;
+using DaylioData.Models;
 using System.Globalization;
 
-namespace DaylioParser.Repo
+namespace DaylioData.Repo
 {
     /// <summary>
     /// <see cref="DaylioFileAccess"/> is used for reading and parsing Daylio CSV data into memory.
