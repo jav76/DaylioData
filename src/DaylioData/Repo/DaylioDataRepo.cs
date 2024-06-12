@@ -2,6 +2,9 @@
 
 namespace DaylioParser.Repo
 {
+    /// <summary>
+    /// <see cref="DaylioDataRepo"/> Repository for Daylio data read from a CSV file.
+    /// </summary>
     public class DaylioDataRepo
     {
 

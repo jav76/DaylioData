@@ -2,6 +2,9 @@
 
 namespace DaylioParser.Models
 {
+    /// <summary>
+    /// <see cref="DaylioCSVDataModel"/> is a model for deserialized Daylio CSV data.
+    /// </summary>
     public class DaylioCSVDataModel
     {
         [Index(0)]
