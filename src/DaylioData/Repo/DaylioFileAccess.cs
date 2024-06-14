@@ -20,17 +20,14 @@ namespace DaylioData.Repo
         
         private string _filePath = string.Empty;
 
-        internal event EventHandler<EventArgs>? FileChanged;
-
         internal DaylioFileAccess(string filePath)
         {
             _filePath = filePath;
         }
 
-        public void UpdateFile(string filePath)
+        internal void SetFilePath(string filePath)
         {
             _filePath = filePath;
-            FileChanged?.Invoke(this, new EventArgs());
         }
 
         public static HashSet<string> CSVHeaders = new HashSet<string>()

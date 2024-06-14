@@ -5,12 +5,11 @@ namespace DaylioData.Repo
     /// <summary>
     /// <see cref="DaylioDataRepo"/> Repository for Daylio data read from a CSV file.
     /// </summary>
-    public class DaylioDataRepo : IDisposable
+    public class DaylioDataRepo
     {
 
         private IEnumerable<DaylioCSVDataModel>? _CSVData;
         private DaylioFileAccess? _fileAccess;
-        private bool disposedValue;
 
         public IEnumerable<DaylioCSVDataModel>? CSVData => _CSVData;
         public HashSet<string> Activities = new HashSet<string>();
@@ -18,13 +17,13 @@ namespace DaylioData.Repo
         internal DaylioDataRepo(DaylioFileAccess fileAccess)
         {
             _fileAccess = fileAccess;
-            _fileAccess.FileChanged += DataChangedEventHandler;
             _CSVData = _fileAccess.TryReadFile();
             InitializeActivities();
         }
 
-        internal void DataChangedEventHandler(object? sender, EventArgs e)
+        public void UpdateFile(string filePath)
         {
+            _fileAccess?.SetFilePath(filePath);
             _CSVData = _fileAccess?.TryReadFile();
             Activities.Clear();
             InitializeActivities();
@@ -42,41 +41,5 @@ namespace DaylioData.Repo
                 Activities.Add(activitiy);
             }
         }
-
-        #region IDisposable Support
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    if (_fileAccess != null)
-                    {
-                        _fileAccess.FileChanged -= DataChangedEventHandler;
-                    }
-                }
-
-                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-                // TODO: set large fields to null
-                disposedValue = true;
-            }
-        }
-
-        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~DaylioDataRepo()
-        // {
-        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        //     Dispose(disposing: false);
-        // }
-
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
     }
-
-    #endregion
 }
