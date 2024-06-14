@@ -20,6 +20,19 @@ namespace DaylioData.Repo
         
         private string _filePath = string.Empty;
 
+        internal event EventHandler<EventArgs>? FileChanged;
+
+        internal DaylioFileAccess(string filePath)
+        {
+            _filePath = filePath;
+        }
+
+        public void UpdateFile(string filePath)
+        {
+            _filePath = filePath;
+            FileChanged?.Invoke(this, new EventArgs());
+        }
+
         public static HashSet<string> CSVHeaders = new HashSet<string>()
         {
             FULL_DATE_HEADER,
@@ -31,11 +44,6 @@ namespace DaylioData.Repo
             NOTE_TITLE_HEADER,
             NOTE_HEADER
         };
-
-        internal DaylioFileAccess(string filePath)
-        {
-            _filePath = filePath;
-        }
 
         internal IEnumerable<DaylioCSVDataModel>? TryReadFile()
         {
