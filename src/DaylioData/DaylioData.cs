@@ -1,5 +1,5 @@
 ﻿using DaylioData.Models;
-using DaylioParser.Repo;
+using DaylioData.Repo;
 
 namespace DaylioData
 {

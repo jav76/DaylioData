@@ -1,8 +1,8 @@
 ﻿using CsvHelper;
-using DaylioParser.Models;
+using DaylioData.Models;
 using System.Globalization;
 
-namespace DaylioParser.Repo
+namespace DaylioData.Repo
 {
     /// <summary>
     /// <see cref="DaylioFileAccess"/> is used for reading and parsing Daylio CSV data into memory.
@@ -32,12 +32,12 @@ namespace DaylioParser.Repo
             NOTE_HEADER
         };
 
-        public DaylioFileAccess(string filePath)
+        internal DaylioFileAccess(string filePath)
         {
             _filePath = filePath;
         }
 
-        public IEnumerable<DaylioCSVDataModel>? TryReadFile()
+        internal IEnumerable<DaylioCSVDataModel>? TryReadFile()
         {
             List<DaylioCSVDataModel> CSVData = new List<DaylioCSVDataModel>();
             CsvHelper.Configuration.IReaderConfiguration readerConfig = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)

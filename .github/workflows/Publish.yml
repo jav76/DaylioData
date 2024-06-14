@@ -24,7 +24,7 @@ jobs:
         dotnet-version: 8.0.x
 
     - name: Restore Dependencies
-      run: dotnet restore
+      run: dotnet restore src/DaylioData/DaylioData.sln
 
     - name: Update Version Info
       run: |
@@ -38,13 +38,13 @@ jobs:
         }
 
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build src/DaylioData/DaylioData.sln --configuration Release --no-restore
 
     - name: Test
-      run: dotnet test --no-restore --verbosity normal
+      run: dotnet test src/DaylioData/DaylioData.sln --no-restore --verbosity normal
 
     - name: Pack
-      run: dotnet pack --no-build --configuration Release --output BuildResults
+      run: dotnet pack src/DaylioData/DaylioData.sln --no-build --configuration Release --output BuildResults
 
     - name: Push
       env:

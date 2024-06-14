@@ -1,6 +1,6 @@
 ﻿using CsvHelper.Configuration.Attributes;
 
-namespace DaylioParser.Models
+namespace DaylioData.Models
 {
     /// <summary>
     /// <see cref="DaylioCSVDataModel"/> is a model for deserialized Daylio CSV data.
