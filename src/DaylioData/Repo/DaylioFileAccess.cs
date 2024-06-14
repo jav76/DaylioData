@@ -32,12 +32,12 @@ namespace DaylioData.Repo
             NOTE_HEADER
         };
 
-        public DaylioFileAccess(string filePath)
+        internal DaylioFileAccess(string filePath)
         {
             _filePath = filePath;
         }
 
-        public IEnumerable<DaylioCSVDataModel>? TryReadFile()
+        internal IEnumerable<DaylioCSVDataModel>? TryReadFile()
         {
             List<DaylioCSVDataModel> CSVData = new List<DaylioCSVDataModel>();
             CsvHelper.Configuration.IReaderConfiguration readerConfig = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)
