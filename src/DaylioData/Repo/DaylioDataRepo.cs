@@ -12,8 +12,6 @@ namespace DaylioData.Repo
         private DaylioFileAccess? _fileAccess;
         private bool disposedValue;
 
-        internal event EventHandler<EventArgs>? DataChanged;
-
         public IEnumerable<DaylioCSVDataModel>? CSVData => _CSVData;
         public HashSet<string> Activities = new HashSet<string>();
 
