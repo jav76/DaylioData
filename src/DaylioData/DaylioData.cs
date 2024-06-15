@@ -8,20 +8,28 @@ namespace DaylioData
     /// </summary>
     public class DaylioData
     {
-        private DaylioDataRepo _dataRepo;
-        private DaylioDataSummary _dataSummary;
+        private DaylioDataRepo? _dataRepo;
+        private DaylioDataSummary? _dataSummary;
 
-        public DaylioDataSummary DataSummary => _dataSummary;
-        public DaylioDataRepo DataRepo => _dataRepo;
+        public DaylioDataSummary? DataSummary => _dataSummary;
+        public DaylioDataRepo? DataRepo => _dataRepo;
 
         /// <summary>
-        /// Initialize a new <see cref="DaylioData"/> class for a given <paramref name="filePath"/>.
+        /// Initializes a new instance of the <see cref="DaylioData"/> class.
         /// </summary>
-        /// <param name="filePath"> Path of a Daylio CSV file.</param>
+        /// <param name="filePath"> Path of a Daylio CSV file to be used to initialize <see cref="DaylioDataRepo"/>.</param>
         public DaylioData(string filePath)
         {
             _dataRepo = new DaylioDataRepo(new DaylioFileAccess(filePath));
             _dataSummary = new DaylioDataSummary(_dataRepo);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DaylioData"/> class.
+        /// </summary>
+        public DaylioData()
+        {
+
         }
     }
 }
