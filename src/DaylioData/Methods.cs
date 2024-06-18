@@ -66,12 +66,47 @@ namespace DaylioData
             TimeOnly endTime = TimeOnly.FromDateTime(endDate);
             return _daylioData?.DataRepo?.CSVData?.Where
             (
-                x => 
-                    (x.FullDate.ToDateTime(TimeOnly.MinValue) > startDate && // Date only comparison
-                        x.FullDate.ToDateTime(TimeOnly.MinValue) < endDate) ||
-                    ((x.FullDate.ToDateTime(TimeOnly.MinValue) == startDate || x.FullDate.ToDateTime(TimeOnly.MinValue) == endDate) && // Same date, Time comparison
-                        x.Time.IsBetween(startTime, endTime))
+                entry => 
+                    (entry.FullDate.ToDateTime(TimeOnly.MinValue) > startDate && // Date only comparison
+                        entry.FullDate.ToDateTime(TimeOnly.MinValue) < endDate) ||
+                    ((entry.FullDate.ToDateTime(TimeOnly.MinValue) == startDate || entry.FullDate.ToDateTime(TimeOnly.MinValue) == endDate) && // Same date, Time comparison
+                        entry.Time.IsBetween(startTime, endTime))
             );
+        }
+
+        /// <summary>
+        /// Gets <see cref="DaylioCSVDataModel"/> entries that include a given activity
+        /// </summary>
+        /// <param name="activity">An activity string</param>
+        /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries that contain the specified activity.</returns>
+        /// <exception cref="ArgumentException"></exception>
+        public IEnumerable<DaylioCSVDataModel>? GetEntriesWithActivity(string activity)
+        {
+            if (string.IsNullOrWhiteSpace(activity) ||
+                _daylioData?.DataRepo?.Activities.Where(entry => entry.Equals(activity)).Any() == false)
+            {
+                throw new ArgumentException("Activity not found in data.");
+            }
+
+            return _daylioData?.DataRepo?.CSVData?.Where(entry => entry.ActivitiesCollection
+                .Any(entryActivity => entryActivity.Equals(activity, StringComparison.InvariantCultureIgnoreCase)));
+        }
+
+        /// <summary>
+        /// Gets <see cref="DaylioCSVDataModel"/> entries that have a specified mood.
+        /// </summary>
+        /// <param name="mood">A mood string</param>
+        /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries that have the specified mood.</returns>
+        /// <exception cref="ArgumentException"></exception>
+        public IEnumerable<DaylioCSVDataModel>? GetEntriesWithMood(string mood)
+        {
+            if (string.IsNullOrWhiteSpace(mood) ||
+                               _daylioData?.DataRepo?.Moods.Where(entry => entry.Equals(mood)).Any() == false)
+            {
+                throw new ArgumentException("Mood not found in data.");
+            }
+
+            return _daylioData?.DataRepo?.CSVData?.Where(entry => entry.Mood?.Equals(mood, StringComparison.InvariantCultureIgnoreCase) == true);
         }
     }
 }

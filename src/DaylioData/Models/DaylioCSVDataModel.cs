@@ -33,6 +33,9 @@ namespace DaylioData.Models
 
         public override string ToString() => $"{FullDate.ToShortDateString()},{Date.DayNumber.ToString() + "-" + Date.Month.ToString()}," +
             $"{Weekday},{Time},{Mood},{Activities},{NoteTitle},{Note}"; 
+
+        public IEnumerable<string> ActivitiesCollection => Activities?.Split(" | ")
+            ?? Array.Empty<string>();
             
     }
 }
