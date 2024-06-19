@@ -35,6 +35,7 @@ namespace DaylioData.Repo
         /// <summary>
         /// Moods can be customized and can be any string. This will keep track of all unique moods.
         /// </summary>
+        /// <remarks>Unfortunately there is no way to assign a scale to the moods from the CSV data. This could potentially eventually be done through a manual assignment extension. </remarks>
         private void InitializeMoods()
         {
             if (_CSVData == null)

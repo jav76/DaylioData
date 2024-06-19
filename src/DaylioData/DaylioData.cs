@@ -22,6 +22,7 @@ namespace DaylioData
         {
             _dataRepo = new DaylioDataRepo(new DaylioFileAccess(filePath));
             _dataSummary = new DaylioDataSummary(_dataRepo);
+            Methods.InitData(this);
         }
 
         /// <summary>

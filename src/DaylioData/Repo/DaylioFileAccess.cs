@@ -1,5 +1,6 @@
 ﻿using CsvHelper;
 using DaylioData.Models;
+using System.Diagnostics;
 using System.Globalization;
 
 namespace DaylioData.Repo
@@ -73,12 +74,12 @@ namespace DaylioData.Repo
             }
             catch (IOException ex)
             {
-                Console.WriteLine(ex.Message);
+                Debug.WriteLine(ex.Message);
                 return null;
             }
             catch (InvalidDataException ex)
             {
-                Console.WriteLine(ex.Message);
+                Debug.WriteLine(ex.Message);
                 return null;
             }
 
