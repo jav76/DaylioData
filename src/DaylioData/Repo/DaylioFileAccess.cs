@@ -1,5 +1,6 @@
 ﻿using CsvHelper;
 using DaylioData.Models;
+using System.Diagnostics;
 using System.Globalization;
 
 namespace DaylioData.Repo
@@ -20,6 +21,16 @@ namespace DaylioData.Repo
         
         private string _filePath = string.Empty;
 
+        internal DaylioFileAccess(string filePath)
+        {
+            _filePath = filePath;
+        }
+
+        internal void SetFilePath(string filePath)
+        {
+            _filePath = filePath;
+        }
+
         public static HashSet<string> CSVHeaders = new HashSet<string>()
         {
             FULL_DATE_HEADER,
@@ -31,11 +42,6 @@ namespace DaylioData.Repo
             NOTE_TITLE_HEADER,
             NOTE_HEADER
         };
-
-        internal DaylioFileAccess(string filePath)
-        {
-            _filePath = filePath;
-        }
 
         internal IEnumerable<DaylioCSVDataModel>? TryReadFile()
         {
@@ -68,12 +74,12 @@ namespace DaylioData.Repo
             }
             catch (IOException ex)
             {
-                Console.WriteLine(ex.Message);
+                Debug.WriteLine(ex.Message);
                 return null;
             }
             catch (InvalidDataException ex)
             {
-                Console.WriteLine(ex.Message);
+                Debug.WriteLine(ex.Message);
                 return null;
             }
 
