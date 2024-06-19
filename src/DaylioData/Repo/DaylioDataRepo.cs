@@ -28,6 +28,7 @@ namespace DaylioData.Repo
             _fileAccess?.SetFilePath(filePath);
             _CSVData = _fileAccess?.TryReadFile();
             Activities.Clear();
+            Moods.Clear();
             InitializeActivities();
             InitializeMoods();
         }
