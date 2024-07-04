@@ -1,4 +1,5 @@
 ﻿using DaylioData.Models;
+using System.Runtime.InteropServices;
 
 namespace DaylioData
 {
@@ -77,6 +78,7 @@ namespace DaylioData
         /// <summary>
         /// Gets <see cref="DaylioCSVDataModel"/> entries in a specified date range.
         /// </summary>
+        /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
         /// <param name="startDate">The earliest (inclusive) <see cref="DateTime"/> of entries.</param>
         /// <param name="endDate">The latest (inclusive) <see cref="DateTime"/> of entries.</param>
         /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries within the specified date range.</returns>
@@ -107,6 +109,7 @@ namespace DaylioData
         /// <summary>
         /// Gets <see cref="DaylioCSVDataModel"/> entries that include a specified activity
         /// </summary>
+        /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
         /// <param name="activity">An activity string</param>
         /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries that contain the specified activity.</returns>
         public static IEnumerable<DaylioCSVDataModel>? GetEntriesWithActivity(DaylioData daylioData,string activity)
@@ -135,6 +138,7 @@ namespace DaylioData
         /// <summary>
         /// Gets <see cref="DaylioCSVDataModel"/> entries that have a specified mood.
         /// </summary>
+        /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
         /// <param name="mood">A mood string</param>
         /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries that have the specified mood.</returns>
         public static IEnumerable<DaylioCSVDataModel>? GetEntriesWithMood(DaylioData daylioData, string mood)
@@ -164,6 +168,33 @@ namespace DaylioData
         {
             InitData(daylioData);
             return GetActivityCount(activity);
+        }
+
+        /// <summary>
+        /// Gets <see cref="DaylioCSVDataModel"/> entries that contain a specified string in the note.
+        /// Assumes that <see cref="DaylioData"/> has been initialized, otherwise returns null.
+        /// </summary>
+        /// <param name="searchString">The <see cref="string"/> to search for within entries.</param>
+        /// <param name="comparisonMethod">The <see cref="StringComparison"/> method to use.</param>
+        /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries that contain the specified search string.</returns>
+        public static IEnumerable<DaylioCSVDataModel>? GetEntriesWithString(string searchString, StringComparison comparisonMethod = StringComparison.CurrentCulture)
+        {
+            return _daylioData?.DataRepo?.CSVData?.Where(entry => !string.IsNullOrWhiteSpace(entry.Note) &&
+                entry.Note.Contains(searchString, comparisonMethod));
+        }
+
+        /// <summary>
+        /// Gets <see cref="DaylioCSVDataModel"/> entries that contain a specified string in the note.
+        /// Assumes that <see cref="DaylioData"/> has been initialized, otherwise returns null.
+        /// </summary>
+        /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
+        /// <param name="searchString">The <see cref="string"/> to search for within entries.</param>
+        /// <param name="comparisonMethod">The <see cref="StringComparison"/> method to use.</param>
+        /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries that contain the specified search string.</returns>
+        public static IEnumerable<DaylioCSVDataModel>? GetEntriesWithString(DaylioData daylioData, string searchString, StringComparison comparisonMethod = StringComparison.CurrentCulture)
+        {
+            InitData(daylioData);
+            return GetEntriesWithString(searchString, comparisonMethod);
         }
     }
 }
