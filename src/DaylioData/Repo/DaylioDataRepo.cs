@@ -9,17 +9,53 @@ namespace DaylioData.Repo
     {
 
         private IEnumerable<DaylioCSVDataModel>? _CSVData;
+        private DaylioFileAccess? _fileAccess;
 
         public IEnumerable<DaylioCSVDataModel>? CSVData => _CSVData;
         public HashSet<string> Activities = new HashSet<string>();
+        public HashSet<string> Moods = new HashSet<string>();
 
         internal DaylioDataRepo(DaylioFileAccess fileAccess)
         {
-
-            _CSVData = fileAccess.TryReadFile();
+            _fileAccess = fileAccess;
+            _CSVData = _fileAccess.TryReadFile();
             InitializeActivities();
+            InitializeMoods();
         }
 
+        public void UpdateFile(string filePath)
+        {
+            _fileAccess?.SetFilePath(filePath);
+            _CSVData = _fileAccess?.TryReadFile();
+            Activities.Clear();
+            Moods.Clear();
+            InitializeActivities();
+            InitializeMoods();
+        }
+
+        /// <summary>
+        /// Moods can be customized and can be any string. This will keep track of all unique moods.
+        /// </summary>
+        /// <remarks>Unfortunately there is no way to assign a scale to the moods from the CSV data. This could potentially eventually be done through a manual assignment extension. </remarks>
+        private void InitializeMoods()
+        {
+            if (_CSVData == null)
+            {
+                return;
+            }
+
+            foreach (string? mood in _CSVData.Select(x => x.Mood).Distinct())
+            {
+                if (mood != null)
+                {
+                    Moods.Add(mood);
+                }
+            }
+        }
+
+        /// <summary>
+        /// There can be any number of custom activities. This will keep track of all unique activities.
+        /// </summary>
         private void InitializeActivities()
         {
             if (_CSVData == null)
@@ -32,6 +68,5 @@ namespace DaylioData.Repo
                 Activities.Add(activitiy);
             }
         }
-
     }
 }
