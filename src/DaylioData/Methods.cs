@@ -127,7 +127,7 @@ namespace DaylioData
         public static IEnumerable<DaylioCSVDataModel>? GetEntriesWithMood(string mood)
         {
             if (string.IsNullOrWhiteSpace(mood) ||
-                _daylioData?.DataRepo?.Moods.Where(entry => entry.Equals(mood)).Any() == false)
+                _daylioData?.DataRepo?.Moods.Where(entryMoods => entryMoods.Equals(mood)).Any() == false)
             {
                 return null;
             }
