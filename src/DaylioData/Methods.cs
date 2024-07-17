@@ -1,6 +1,4 @@
 ﻿using DaylioData.Models;
-using System.Numerics;
-using System.Runtime.InteropServices;
 
 namespace DaylioData
 {
