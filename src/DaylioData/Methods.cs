@@ -1,4 +1,5 @@
 ﻿using DaylioData.Models;
+using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace DaylioData
@@ -162,6 +163,7 @@ namespace DaylioData
         /// <summary>
         /// Gets the number of entries that include a specified activity.
         /// </summary>
+        /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
         /// <param name="activity">An activity string</param>
         /// <returns>The <see cref="int"/> number of activities that include a specified activity.</returns>
         public static int? GetActivityCount(DaylioData daylioData, string activity)
@@ -185,7 +187,6 @@ namespace DaylioData
 
         /// <summary>
         /// Gets <see cref="DaylioCSVDataModel"/> entries that contain a specified string in the note.
-        /// Assumes that <see cref="DaylioData"/> has been initialized, otherwise returns null.
         /// </summary>
         /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
         /// <param name="searchString">The <see cref="string"/> to search for within entries.</param>
@@ -195,6 +196,51 @@ namespace DaylioData
         {
             InitData(daylioData);
             return GetEntriesWithString(searchString, comparisonMethod);
+        }
+
+        /// <summary>
+        /// Gets an avererage mood rating for a specified activity. Requires levels to be set for each mood.
+        /// Assumes that <see cref="DaylioData"/> has been initialized, otherwise returns null.
+        /// </summary>
+        /// <param name="activity">The activity name to get an avergae mood rating for.</param>
+        /// <returns>An average <see cref="Decimal?"/> mood rating for the specified activity.</returns>
+        public static decimal? GetAverageActivityMood(string activity)
+        {
+            if (_daylioData == null || _daylioData.DataRepo == null || string.IsNullOrWhiteSpace(activity) 
+                || !_daylioData.DataRepo.Activities.Contains(activity) || _daylioData.DataRepo.Moods.Where(x => x.Key == null).Any())
+            {
+                return null;
+            }
+
+            uint moodSum = 0;
+            uint count = 0;
+
+            foreach (DaylioCSVDataModel entry in _daylioData?.DataRepo?.CSVData?.Where(entry => entry.ActivitiesCollection
+                           .Any(entryActivity => entryActivity.Equals(activity, StringComparison.InvariantCultureIgnoreCase)))
+                               ?? Enumerable.Empty<DaylioCSVDataModel>())
+            {
+                if (entry == Enumerable.Empty<DaylioCSVDataModel>())
+                {
+                    continue;
+                }
+                moodSum += Convert.ToUInt32(_daylioData.DataRepo.Moods[entry.Mood]);
+                count++;
+            }
+
+            return count == 0 ? null 
+                : moodSum / count;
+        }
+
+        /// <summary>
+        /// Gets an avererage mood rating for a specified activity. Requires levels to be set for each mood.
+        /// </summary>
+        /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
+        /// <param name="activity">The activity name to get an avergae mood rating for.</param>
+        /// <returns>An average <see cref="Decimal?"/> mood rating for the specified activity.</returns>
+        public static decimal? GetAverageActivityMood(DaylioData daylioData, string activity)
+        {
+            InitData(daylioData);
+            return GetAverageActivityMood(activity);
         }
     }
 }
