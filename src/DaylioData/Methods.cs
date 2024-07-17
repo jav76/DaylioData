@@ -131,7 +131,7 @@ namespace DaylioData
                 return null;
             }
 
-            return _daylioData?.DataRepo?.CSVData?.Where(entry => entry.Mood?.Equals(mood, StringComparison.InvariantCultureIgnoreCase) == true);
+            return _daylioData?.DataRepo?.CSVData?.Where(entry => entry.Mood.Equals(mood, StringComparison.InvariantCultureIgnoreCase) == true);
         }
 
         /// <summary>
@@ -204,7 +204,7 @@ namespace DaylioData
         /// <returns>An average <see cref="Decimal?"/> mood rating for the specified activity.</returns>
         public static decimal? GetAverageActivityMood(string activity)
         {
-            if (_daylioData == null || _daylioData.DataRepo == null || string.IsNullOrWhiteSpace(activity) 
+            if (_daylioData == null || _daylioData.DataRepo == null || string.IsNullOrWhiteSpace(activity)
                 || !_daylioData.DataRepo.Activities.Contains(activity) || _daylioData.DataRepo.Moods.Where(x => x.Key == null).Any())
             {
                 return null;
@@ -213,7 +213,7 @@ namespace DaylioData
             uint moodSum = 0;
             uint count = 0;
 
-            foreach (DaylioCSVDataModel entry in _daylioData?.DataRepo?.CSVData?.Where(entry => entry.ActivitiesCollection
+            foreach (DaylioCSVDataModel entry in _daylioData.DataRepo.CSVData?.Where(entry => entry.ActivitiesCollection
                            .Any(entryActivity => entryActivity.Equals(activity, StringComparison.InvariantCultureIgnoreCase)))
                                ?? Enumerable.Empty<DaylioCSVDataModel>())
             {

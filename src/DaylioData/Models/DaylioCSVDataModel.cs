@@ -8,19 +8,19 @@ namespace DaylioData.Models
     public class DaylioCSVDataModel
     {
         [Index(0)]
-        public DateOnly FullDate { get; set; }
+        public required DateOnly FullDate { get; set; }
 
         [Index(1)]
-        public DateOnly Date { get; set; }
+        public required DateOnly Date { get; set; }
 
         [Index(2)]
-        public string? Weekday { get; set; }
+        public required string? Weekday { get; set; }
 
         [Index(3)]
-        public TimeOnly Time { get; set; }
+        public required TimeOnly Time { get; set; }
 
         [Index(4)]
-        public string? Mood { get; set; }
+        public required string Mood { get; set; }
 
         [Index(5)]
         public string? Activities { get; set; }

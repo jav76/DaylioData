@@ -82,12 +82,9 @@ namespace DaylioData.Repo
                 return;
             }
 
-            foreach (string? mood in _CSVData.Select(x => x.Mood).Distinct())
+            foreach (string mood in _CSVData.Select(x => x.Mood).Distinct())
             {
-                if (mood != null)
-                {
-                    Moods.Add(mood, null);
-                }
+                Moods.Add(mood, null);
             }
         }
 
