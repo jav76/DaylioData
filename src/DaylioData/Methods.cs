@@ -226,7 +226,7 @@ namespace DaylioData
             }
 
             return count == 0 ? null 
-                : moodSum / count;
+                : (decimal)moodSum / count;
         }
 
         /// <summary>
