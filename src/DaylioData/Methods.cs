@@ -30,7 +30,7 @@ public static class Methods
     /// Gets the <see cref="DaylioCSVDataModel"/> with the latest entry date.
     /// Assumes that <see cref="DaylioData"/> has been initialized, otherwise returns null.
     /// </summary>
-    /// <returns>The <see cref="DaylioCSVDataModel"/> with the earliest entry date.</returns>
+    /// <returns>The <see cref="DaylioCSVDataModel"/> with the latest entry date.</returns>
     public static DaylioCSVDataModel? GetLatestEntry() => _daylioData?.DataSummary?.LatestEntry;
 
     /// <summary>
@@ -120,13 +120,13 @@ public static class Methods
     public static IEnumerable<DaylioCSVDataModel>? GetEntriesWithMood(string mood)
     {
         if (string.IsNullOrWhiteSpace(mood) ||
-            _daylioData?.DataRepo?.Moods.Contains(mood) != true)
+            _daylioData?.DataRepo?.Moods.ContainsKey(mood) != true)
         {
             return null;
         }
 
         return _daylioData?.DataRepo?.CSVData?.Where(entry =>
-            entry.Mood?.Equals(mood, StringComparison.OrdinalIgnoreCase) == true);
+            entry.Mood.Equals(mood, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -182,7 +182,6 @@ public static class Methods
 
     /// <summary>
     /// Gets <see cref="DaylioCSVDataModel"/> entries that contain a specified string in the note.
-    /// Assumes that <see cref="DaylioData"/> has been initialized, otherwise returns null.
     /// </summary>
     /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
     /// <param name="searchString">The <see cref="string"/> to search for within entries.</param>
@@ -195,5 +194,52 @@ public static class Methods
     {
         InitData(daylioData);
         return GetEntriesWithString(searchString, comparisonMethod);
+    }
+
+    /// <summary>
+    /// Gets an average mood rating for a specified activity. Requires levels to be set for each mood.
+    /// Assumes that <see cref="DaylioData"/> has been initialized, otherwise returns null.
+    /// </summary>
+    /// <param name="activity">The activity name to get an average mood rating for.</param>
+    /// <returns>An average <see cref="decimal?"/> mood rating for the specified activity.</returns>
+    public static decimal? GetAverageActivityMood(string activity)
+    {
+        if (_daylioData is null ||
+            _daylioData.DataRepo is null ||
+            string.IsNullOrWhiteSpace(activity) ||
+            !_daylioData.DataRepo.Activities.Contains(activity) ||
+            _daylioData.DataRepo.Moods.Any(x => x.Value is null))
+        {
+            return null;
+        }
+
+        uint moodSum = 0;
+        uint count = 0;
+
+        foreach (DaylioCSVDataModel entry in _daylioData.DataRepo.CSVData?.Where(entry =>
+            entry.ActivitiesCollection.Any(entryActivity =>
+                entryActivity.Equals(activity, StringComparison.InvariantCultureIgnoreCase)))
+            ?? Enumerable.Empty<DaylioCSVDataModel>())
+        {
+            if (_daylioData.DataRepo.Moods.TryGetValue(entry.Mood, out short? moodLevel) && moodLevel.HasValue)
+            {
+                moodSum += Convert.ToUInt32(moodLevel.Value);
+                count++;
+            }
+        }
+
+        return count == 0 ? null : (decimal)moodSum / count;
+    }
+
+    /// <summary>
+    /// Gets an average mood rating for a specified activity. Requires levels to be set for each mood.
+    /// </summary>
+    /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
+    /// <param name="activity">The activity name to get an average mood rating for.</param>
+    /// <returns>An average <see cref="decimal?"/> mood rating for the specified activity.</returns>
+    public static decimal? GetAverageActivityMood(DaylioData daylioData, string activity)
+    {
+        InitData(daylioData);
+        return GetAverageActivityMood(activity);
     }
 }

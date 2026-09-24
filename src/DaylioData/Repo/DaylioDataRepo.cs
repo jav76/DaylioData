@@ -9,10 +9,18 @@ public class DaylioDataRepo
 {
     private IEnumerable<DaylioCSVDataModel>? _CSVData;
     private readonly DaylioFileAccess? _fileAccess;
+    private readonly Dictionary<string, short> _defaultMoods = new()
+    {
+        { "rad", 5 },
+        { "good", 4 },
+        { "meh", 3 },
+        { "bad", 2 },
+        { "awful", 1 }
+    };
 
     public IEnumerable<DaylioCSVDataModel>? CSVData => _CSVData;
     public HashSet<string> Activities = new();
-    public HashSet<string> Moods = new();
+    public Dictionary<string, short?> Moods = new();
 
     internal DaylioDataRepo(DaylioFileAccess fileAccess)
     {
@@ -33,9 +41,39 @@ public class DaylioDataRepo
     }
 
     /// <summary>
+    /// Used to set custom mood levels.
+    /// </summary>
+    /// <param name="moodName">The name of the mood to set a level for.</param>
+    /// <param name="moodLevel">The level to set for the mood.</param>
+    public void SetMoodLevel(string moodName, short? moodLevel)
+    {
+        if (Moods.ContainsKey(moodName))
+        {
+            Moods[moodName] = moodLevel;
+        }
+    }
+
+    /// <summary>
+    /// Sets mood levels based on Daylio's default moods. This cannot be used with custom moods. <br></br>
+    /// Rad - 5, Good - 4, Meh - 3, Bad - 2, Awful - 1
+    /// </summary>
+    /// <exception cref="InvalidOperationException"></exception>
+    public void SetDefaultMoodLevels()
+    {
+        foreach (KeyValuePair<string, short> mood in _defaultMoods)
+        {
+            if (!Moods.ContainsKey(mood.Key))
+            {
+                throw new InvalidOperationException("Attempting to assign default mood levels to non-default moods.");
+            }
+        }
+
+        Moods = _defaultMoods.ToDictionary(x => x.Key, x => (short?)x.Value);
+    }
+
+    /// <summary>
     /// Moods can be customized and can be any string. This will keep track of all unique moods.
     /// </summary>
-    /// <remarks>Unfortunately there is no way to assign a scale to the moods from the CSV data. This could potentially eventually be done through a manual assignment extension. </remarks>
     private void InitializeMoods()
     {
         if (_CSVData is null)
@@ -43,12 +81,9 @@ public class DaylioDataRepo
             return;
         }
 
-        foreach (string? mood in _CSVData.Select(x => x.Mood).Distinct())
+        foreach (string mood in _CSVData.Select(x => x.Mood).Distinct())
         {
-            if (mood is not null)
-            {
-                Moods.Add(mood);
-            }
+            Moods.Add(mood, null);
         }
     }
 
