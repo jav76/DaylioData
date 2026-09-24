@@ -20,10 +20,10 @@ public static class Methods
     /// </summary>
     /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
     /// <returns>The <see cref="DaylioCSVDataModel"/> with the earliest entry date.</returns>
-    public static DaylioCSVDataModel? GetEarliestEntry(DaylioData daylioData)
+    public static DaylioCSVDataModel? GetEarliestEntry(this DaylioData daylioData)
     {
         InitData(daylioData);
-        return GetEarliestEntry();
+        return daylioData.DataSummary?.EarliestEntry;
     }
 
     /// <summary>
@@ -38,10 +38,10 @@ public static class Methods
     /// </summary>
     /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
     /// <returns>The <see cref="DaylioCSVDataModel"/> with the latest entry date.</returns>
-    public static DaylioCSVDataModel? GetLatestEntry(DaylioData daylioData)
+    public static DaylioCSVDataModel? GetLatestEntry(this DaylioData daylioData)
     {
         InitData(daylioData);
-        return GetLatestEntry();
+        return daylioData.DataSummary?.LatestEntry;
     }
 
     /// <summary>
@@ -53,16 +53,8 @@ public static class Methods
     /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries within the specified date range.</returns>
     public static IEnumerable<DaylioCSVDataModel>? GetEntriesInRange(DateTime startDate, DateTime endDate)
     {
-        TimeOnly startTime = TimeOnly.FromDateTime(startDate);
-        TimeOnly endTime = TimeOnly.FromDateTime(endDate);
-        return _daylioData?.DataRepo?.CSVData?.Where
-        (
-            entry =>
-                (entry.FullDate.ToDateTime(TimeOnly.MinValue) > startDate &&
-                    entry.FullDate.ToDateTime(TimeOnly.MinValue) < endDate) ||
-                ((entry.FullDate.ToDateTime(TimeOnly.MinValue) == startDate || entry.FullDate.ToDateTime(TimeOnly.MinValue) == endDate) &&
-                    entry.Time.IsBetween(startTime, endTime))
-        );
+        return _daylioData?.DataRepo?.CSVData?.Where(entry =>
+            entry.Timestamp >= startDate && entry.Timestamp <= endDate);
     }
 
     /// <summary>
@@ -73,12 +65,13 @@ public static class Methods
     /// <param name="endDate">The latest (inclusive) <see cref="DateTime"/> of entries.</param>
     /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries within the specified date range.</returns>
     public static IEnumerable<DaylioCSVDataModel>? GetEntriesInRange(
-        DaylioData daylioData,
+        this DaylioData daylioData,
         DateTime startDate,
         DateTime endDate)
     {
         InitData(daylioData);
-        return GetEntriesInRange(startDate, endDate);
+        return daylioData?.DataRepo?.CSVData?.Where(entry =>
+            entry.Timestamp >= startDate && entry.Timestamp <= endDate);
     }
 
     /// <summary>
@@ -105,10 +98,17 @@ public static class Methods
     /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
     /// <param name="activity">An activity string</param>
     /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries that contain the specified activity.</returns>
-    public static IEnumerable<DaylioCSVDataModel>? GetEntriesWithActivity(DaylioData daylioData, string activity)
+    public static IEnumerable<DaylioCSVDataModel>? GetEntriesWithActivity(this DaylioData daylioData, string activity)
     {
         InitData(daylioData);
-        return GetEntriesWithActivity(activity);
+        if (string.IsNullOrWhiteSpace(activity) ||
+            daylioData?.DataRepo?.Activities.Contains(activity) != true)
+        {
+            return null;
+        }
+
+        return daylioData?.DataRepo?.CSVData?.Where(entry => entry.ActivitiesCollection
+            .Any(entryActivity => entryActivity.Equals(activity, StringComparison.OrdinalIgnoreCase)));
     }
 
     /// <summary>
@@ -135,10 +135,17 @@ public static class Methods
     /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
     /// <param name="mood">A mood string</param>
     /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries that have the specified mood.</returns>
-    public static IEnumerable<DaylioCSVDataModel>? GetEntriesWithMood(DaylioData daylioData, string mood)
+    public static IEnumerable<DaylioCSVDataModel>? GetEntriesWithMood(this DaylioData daylioData, string mood)
     {
         InitData(daylioData);
-        return GetEntriesWithMood(mood);
+        if (string.IsNullOrWhiteSpace(mood) ||
+            daylioData?.DataRepo?.Moods.ContainsKey(mood) != true)
+        {
+            return null;
+        }
+
+        return daylioData?.DataRepo?.CSVData?.Where(entry =>
+            entry.Mood.Equals(mood, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -159,10 +166,11 @@ public static class Methods
     /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
     /// <param name="activity">An activity string</param>
     /// <returns>The <see cref="int"/> number of activities that include a specified activity.</returns>
-    public static int? GetActivityCount(DaylioData daylioData, string activity)
+    public static int? GetActivityCount(this DaylioData daylioData, string activity)
     {
         InitData(daylioData);
-        return GetActivityCount(activity);
+        return daylioData?.DataRepo?.CSVData?.Count(entry => entry.ActivitiesCollection
+            .Any(entryActivity => entryActivity.Equals(activity, StringComparison.OrdinalIgnoreCase)));
     }
 
     /// <summary>
@@ -188,12 +196,13 @@ public static class Methods
     /// <param name="comparisonMethod">The <see cref="StringComparison"/> method to use.</param>
     /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries that contain the specified search string.</returns>
     public static IEnumerable<DaylioCSVDataModel>? GetEntriesWithString(
-        DaylioData daylioData,
+        this DaylioData daylioData,
         string searchString,
         StringComparison comparisonMethod = StringComparison.CurrentCulture)
     {
         InitData(daylioData);
-        return GetEntriesWithString(searchString, comparisonMethod);
+        return daylioData?.DataRepo?.CSVData?.Where(entry => !string.IsNullOrWhiteSpace(entry.Note) &&
+            entry.Note.Contains(searchString, comparisonMethod));
     }
 
     /// <summary>
@@ -207,28 +216,12 @@ public static class Methods
         if (_daylioData is null ||
             _daylioData.DataRepo is null ||
             string.IsNullOrWhiteSpace(activity) ||
-            !_daylioData.DataRepo.Activities.Contains(activity) ||
-            _daylioData.DataRepo.Moods.Any(x => x.Value is null))
+            !_daylioData.DataRepo.Activities.Contains(activity))
         {
             return null;
         }
 
-        uint moodSum = 0;
-        uint count = 0;
-
-        foreach (DaylioCSVDataModel entry in _daylioData.DataRepo.CSVData?.Where(entry =>
-            entry.ActivitiesCollection.Any(entryActivity =>
-                entryActivity.Equals(activity, StringComparison.InvariantCultureIgnoreCase)))
-            ?? Enumerable.Empty<DaylioCSVDataModel>())
-        {
-            if (_daylioData.DataRepo.Moods.TryGetValue(entry.Mood, out short? moodLevel) && moodLevel.HasValue)
-            {
-                moodSum += Convert.ToUInt32(moodLevel.Value);
-                count++;
-            }
-        }
-
-        return count == 0 ? null : (decimal)moodSum / count;
+        return GetAverageActivityMood(_daylioData, activity);
     }
 
     /// <summary>
@@ -237,9 +230,31 @@ public static class Methods
     /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
     /// <param name="activity">The activity name to get an average mood rating for.</param>
     /// <returns>An average <see cref="decimal?"/> mood rating for the specified activity.</returns>
-    public static decimal? GetAverageActivityMood(DaylioData daylioData, string activity)
+    public static decimal? GetAverageActivityMood(this DaylioData daylioData, string activity)
     {
         InitData(daylioData);
-        return GetAverageActivityMood(activity);
+        if (daylioData?.DataRepo is null ||
+            string.IsNullOrWhiteSpace(activity) ||
+            !daylioData.DataRepo.Activities.Contains(activity))
+        {
+            return null;
+        }
+
+        uint moodSum = 0;
+        uint count = 0;
+
+        foreach (DaylioCSVDataModel entry in daylioData.DataRepo.CSVData?.Where(entry =>
+            entry.ActivitiesCollection.Any(entryActivity =>
+                entryActivity.Equals(activity, StringComparison.OrdinalIgnoreCase)))
+            ?? Enumerable.Empty<DaylioCSVDataModel>())
+        {
+            if (daylioData.DataRepo.Moods.TryGetValue(entry.Mood, out short? moodLevel) && moodLevel.HasValue)
+            {
+                moodSum += Convert.ToUInt32(moodLevel.Value);
+                count++;
+            }
+        }
+
+        return count == 0 ? null : (decimal)moodSum / count;
     }
 }

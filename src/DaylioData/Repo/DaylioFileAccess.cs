@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Globalization;
 using CsvHelper;
 using DaylioData.Models;
@@ -20,15 +19,30 @@ public class DaylioFileAccess
     private const string NOTE_HEADER = "note";
 
     private string _filePath = string.Empty;
+    private TextReader? _textReader;
 
     internal DaylioFileAccess(string filePath)
     {
         _filePath = filePath;
     }
 
-    internal void SetFilePath(string filePath) => _filePath = filePath;
+    internal DaylioFileAccess(TextReader textReader)
+    {
+        _textReader = textReader;
+    }
 
-    public static HashSet<string> CSVHeaders = new()
+    internal DaylioFileAccess(Stream stream)
+    {
+        _textReader = new StreamReader(stream);
+    }
+
+    internal void SetFilePath(string filePath)
+    {
+        _filePath = filePath;
+        _textReader = null;
+    }
+
+    public static readonly HashSet<string> CSVHeaders = new()
     {
         FULL_DATE_HEADER,
         DATE_HEADER,
@@ -42,7 +56,29 @@ public class DaylioFileAccess
 
     internal IEnumerable<DaylioCSVDataModel>? TryReadFile()
     {
-        List<DaylioCSVDataModel> CSVData = new();
+        if (_textReader is not null)
+        {
+            return TryRead(_textReader);
+        }
+
+        if (string.IsNullOrWhiteSpace(_filePath))
+        {
+            return null;
+        }
+
+        try
+        {
+            using StreamReader streamReader = new(_filePath);
+            return TryRead(streamReader);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    internal static IEnumerable<DaylioCSVDataModel>? TryRead(TextReader reader)
+    {
         CsvHelper.Configuration.CsvConfiguration readerConfig = new(CultureInfo.InvariantCulture)
         {
             HasHeaderRecord = true,
@@ -55,27 +91,12 @@ public class DaylioFileAccess
 
         try
         {
-            using StreamReader streamReader = new(_filePath);
-            using CsvReader CSVReader = new(streamReader, readerConfig);
-            CSVReader.Read();
-            CSVReader.ReadHeader();
-            IEnumerable<DaylioCSVDataModel> readHeader = CSVReader.GetRecords<DaylioCSVDataModel>();
-            while (CSVReader.Read())
-            {
-                CSVData.Add(CSVReader.GetRecord<DaylioCSVDataModel>());
-            }
+            using CsvReader csvReader = new(reader, readerConfig);
+            return csvReader.GetRecords<DaylioCSVDataModel>().ToList();
         }
-        catch (IOException ex)
+        catch (Exception)
         {
-            Debug.WriteLine(ex.Message);
             return null;
         }
-        catch (InvalidDataException ex)
-        {
-            Debug.WriteLine(ex.Message);
-            return null;
-        }
-
-        return CSVData;
     }
 }

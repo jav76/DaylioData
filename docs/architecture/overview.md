@@ -1,6 +1,6 @@
 # DaylioData Architecture Overview
 
-DaylioData is a lightweight .NET library designed to parse, index, and query exported Daylio CSV mood tracking and activity data.
+DaylioData is a lightweight .NET library designed to parse, index, query, and analyze exported Daylio CSV mood tracking and activity data.
 
 ---
 
@@ -10,9 +10,10 @@ The library is organized into three distinct layers:
 
 ```mermaid
 flowchart TB
-    subgraph Layer1["1. Public Façade & Query API Layer"]
+    subgraph Layer1["1. Public Façade, Query API & Analytics Layer"]
         Facade["DaylioData<br/>(Primary Entry Point & Lifecycle Coordinator)"]
-        Methods["Methods<br/>(Static Query, Filter & Search Extensions)"]
+        Methods["Methods<br/>(Query, Filter & Search Extensions)"]
+        Analytics["DaylioAnalytics<br/>(Habit Analytics, Trends & Streaks)"]
     end
 
     subgraph Layer2["2. Repository & Aggregation Layer"]
@@ -22,8 +23,8 @@ flowchart TB
     end
 
     subgraph Layer3["3. Data Models & Low-Level I/O Layer"]
-        Model["DaylioCSVDataModel<br/>(Record Schema with CsvHelper Index Mapping)"]
-        FileAccess["DaylioFileAccess<br/>(CsvHelper Configuration & Stream Processing)"]
+        Model["DaylioCSVDataModel<br/>(Record Schema, Timestamp & CsvHelper Index Mapping)"]
+        FileAccess["DaylioFileAccess<br/>(CsvHelper Configuration, Stream & TextReader Processing)"]
     end
 
     Layer1 --> Layer2
@@ -34,17 +35,17 @@ flowchart TB
 
 ## Architectural Layers Explained
 
-### 1. Public Façade & Query API Layer
-- **Components**: `DaylioData`, `DaylioData.Methods`.
-- **Responsibilities**: Serves as the consumer-facing interface. Coordinates initialization of file access, in-memory repository, and summary analytics. Exposes query functions (`GetEntriesInRange`, `GetEntriesWithActivity`, `GetEntriesWithMood`, `GetActivityCount`, `GetEntriesWithString`).
+### 1. Public Façade, Query API & Analytics Layer
+- **Components**: `DaylioData`, `DaylioData.Methods`, `DaylioData.DaylioAnalytics`.
+- **Responsibilities**: Serves as the consumer-facing interface. Coordinates initialization from file paths, `TextReader`, or `Stream` sources. Exposes fluent query functions (`GetEntriesInRange`, `GetEntriesWithActivity`, `GetEntriesWithMood`, `GetActivityCount`, `GetEntriesWithString`, `GetAverageActivityMood`) and analytics (`GetMoodDistribution`, `GetTopActivities`, `GetLongestStreak`, `GetAverageMoodByDayOfWeek`).
 
 ### 2. Repository & Aggregation Layer
 - **Components**: `DaylioDataRepo`, `DaylioDataSummary`, `SummaryPropertyAttribute`.
-- **Responsibilities**: Manages the parsed in-memory collection of Daylio entries. Computes and indexes unique activities and moods. Produces summary statistics (total entries, total days, distinct activity counts, average entries per day, earliest/latest entries) via reflection on decorated summary properties.
+- **Responsibilities**: Manages the parsed in-memory collection of Daylio entries. Computes and indexes unique activities and moods case-insensitively. Produces summary statistics (total entries, total days, distinct activity counts, average entries per day, earliest/latest entries by timestamp) via reflection on decorated summary properties.
 
 ### 3. Data Models & Low-Level I/O Layer
 - **Components**: `DaylioCSVDataModel`, `DaylioFileAccess`, CsvHelper.
-- **Responsibilities**: Defines the CSV schema mapping with positional indices (`[Index(n)]`), DateOnly and TimeOnly deserialization, header normalization (`snake_case` to PascalCase), and invariant culture stream handling.
+- **Responsibilities**: Defines the CSV schema mapping with positional indices (`[Index(n)]`), DateOnly and TimeOnly deserialization, combined `Timestamp` (`DateTime`), header normalization (`snake_case` to PascalCase), and invariant culture stream/reader handling.
 
 ---
 

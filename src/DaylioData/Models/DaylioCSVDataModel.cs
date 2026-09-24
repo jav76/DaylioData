@@ -31,9 +31,15 @@ public class DaylioCSVDataModel
     [Index(7)]
     public string? Note { get; set; }
 
+    [Ignore]
+    public DateTime Timestamp => FullDate.ToDateTime(Time);
+
     public override string ToString() =>
         $"{FullDate.ToShortDateString()},{Date.DayNumber}-{Date.Month},{Weekday},{Time},{Mood},{Activities},{NoteTitle},{Note}";
 
-    public IEnumerable<string> ActivitiesCollection => Activities?.Split(" | ")
-        ?? Array.Empty<string>();
+    [Ignore]
+    public IReadOnlyList<string> ActivitiesCollection =>
+        string.IsNullOrWhiteSpace(Activities)
+            ? Array.Empty<string>()
+            : Activities.Split(" | ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 }

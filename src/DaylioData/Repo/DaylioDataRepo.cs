@@ -9,7 +9,7 @@ public class DaylioDataRepo
 {
     private IEnumerable<DaylioCSVDataModel>? _CSVData;
     private readonly DaylioFileAccess? _fileAccess;
-    private readonly Dictionary<string, short> _defaultMoods = new()
+    private readonly Dictionary<string, short> _defaultMoods = new(StringComparer.OrdinalIgnoreCase)
     {
         { "rad", 5 },
         { "good", 4 },
@@ -19,8 +19,8 @@ public class DaylioDataRepo
     };
 
     public IEnumerable<DaylioCSVDataModel>? CSVData => _CSVData;
-    public HashSet<string> Activities = new();
-    public Dictionary<string, short?> Moods = new();
+    public HashSet<string> Activities { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, short?> Moods { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
 
     internal DaylioDataRepo(DaylioFileAccess fileAccess)
     {
@@ -54,21 +54,18 @@ public class DaylioDataRepo
     }
 
     /// <summary>
-    /// Sets mood levels based on Daylio's default moods. This cannot be used with custom moods. <br></br>
+    /// Sets mood levels based on Daylio's default moods without removing custom moods. <br></br>
     /// Rad - 5, Good - 4, Meh - 3, Bad - 2, Awful - 1
     /// </summary>
-    /// <exception cref="InvalidOperationException"></exception>
     public void SetDefaultMoodLevels()
     {
         foreach (KeyValuePair<string, short> mood in _defaultMoods)
         {
-            if (!Moods.ContainsKey(mood.Key))
+            if (Moods.ContainsKey(mood.Key))
             {
-                throw new InvalidOperationException("Attempting to assign default mood levels to non-default moods.");
+                Moods[mood.Key] = mood.Value;
             }
         }
-
-        Moods = _defaultMoods.ToDictionary(x => x.Key, x => (short?)x.Value);
     }
 
     /// <summary>
@@ -81,9 +78,12 @@ public class DaylioDataRepo
             return;
         }
 
-        foreach (string mood in _CSVData.Select(x => x.Mood).Distinct())
+        foreach (DaylioCSVDataModel entry in _CSVData)
         {
-            Moods.Add(mood, null);
+            if (!string.IsNullOrWhiteSpace(entry.Mood) && !Moods.ContainsKey(entry.Mood))
+            {
+                Moods.Add(entry.Mood, null);
+            }
         }
     }
 
@@ -97,9 +97,12 @@ public class DaylioDataRepo
             return;
         }
 
-        foreach (string activity in _CSVData.Select(x => x.Activities?.Split(" | ")).SelectMany(x => x ?? Array.Empty<string>()))
+        foreach (DaylioCSVDataModel entry in _CSVData)
         {
-            Activities.Add(activity);
+            foreach (string activity in entry.ActivitiesCollection)
+            {
+                Activities.Add(activity);
+            }
         }
     }
 }

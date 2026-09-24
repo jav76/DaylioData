@@ -40,7 +40,7 @@ public class DaylioDataSummary
     /// </summary>
     [SummaryProperty]
     public int TotalActivitiesCount =>
-        _daylioDataRepo.CSVData?.Sum(x => x.Activities?.Split(' ').Length ?? 0)
+        _daylioDataRepo.CSVData?.Sum(x => x.ActivitiesCollection.Count)
             ?? 0;
 
     /// <summary>
@@ -48,7 +48,8 @@ public class DaylioDataSummary
     /// </summary>
     [SummaryProperty]
     public DaylioCSVDataModel? EarliestEntry =>
-        _daylioDataRepo.CSVData?.OrderBy(x => x.FullDate)
+        _daylioDataRepo.CSVData?
+            .OrderBy(x => x.Timestamp)
             .FirstOrDefault();
 
     /// <summary>
@@ -56,22 +57,27 @@ public class DaylioDataSummary
     /// </summary>
     [SummaryProperty]
     public DaylioCSVDataModel? LatestEntry =>
-        _daylioDataRepo.CSVData?.OrderBy(x => x.FullDate)
-            .LastOrDefault();
+        _daylioDataRepo.CSVData?
+            .OrderByDescending(x => x.Timestamp)
+            .FirstOrDefault();
 
     /// <summary>
     /// The total word count of all notes in all entries.
     /// </summary>
     [SummaryProperty]
     public int NoteTotalWordCount =>
-        _daylioDataRepo.CSVData?.Sum(x => x.Note?.Split(' ').Length ?? 0)
+        _daylioDataRepo.CSVData?.Sum(x =>
+            string.IsNullOrWhiteSpace(x.Note)
+                ? 0
+                : x.Note.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length)
             ?? 0;
 
     /// <summary>
     /// The average number of entries per day.
     /// </summary>
     [SummaryProperty]
-    public double AverageEntriesPerDay => TotalEntries / (double)TotalDays;
+    public double AverageEntriesPerDay =>
+        TotalDays == 0 ? 0.0 : TotalEntries / (double)TotalDays;
 
     public DaylioDataSummary(DaylioDataRepo daylioData)
     {
