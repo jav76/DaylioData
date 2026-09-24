@@ -6,6 +6,11 @@ public static class Methods
 {
     private static DaylioData? _daylioData;
 
+    /// <summary>
+    /// Initializes static data reference.
+    /// </summary>
+    /// <param name="daylioData">The <see cref="DaylioData"/> instance.</param>
+    [Obsolete("Avoid static initialization; use instance extension methods for thread safety.")]
     public static void InitData(DaylioData daylioData) => _daylioData = daylioData;
 
     /// <summary>
@@ -13,6 +18,7 @@ public static class Methods
     /// Assumes that <see cref="DaylioData"/> has been initialized, otherwise returns null.
     /// </summary>
     /// <returns>The <see cref="DaylioCSVDataModel"/> with the earliest entry date</returns>
+    [Obsolete("Use daylioData extension methods for thread safety.")]
     public static DaylioCSVDataModel? GetEarliestEntry() => _daylioData?.DataSummary?.EarliestEntry;
 
     /// <summary>
@@ -20,17 +26,15 @@ public static class Methods
     /// </summary>
     /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
     /// <returns>The <see cref="DaylioCSVDataModel"/> with the earliest entry date.</returns>
-    public static DaylioCSVDataModel? GetEarliestEntry(this DaylioData daylioData)
-    {
-        InitData(daylioData);
-        return daylioData.DataSummary?.EarliestEntry;
-    }
+    public static DaylioCSVDataModel? GetEarliestEntry(this DaylioData daylioData) =>
+        daylioData.DataSummary?.EarliestEntry;
 
     /// <summary>
     /// Gets the <see cref="DaylioCSVDataModel"/> with the latest entry date.
     /// Assumes that <see cref="DaylioData"/> has been initialized, otherwise returns null.
     /// </summary>
     /// <returns>The <see cref="DaylioCSVDataModel"/> with the latest entry date.</returns>
+    [Obsolete("Use daylioData extension methods for thread safety.")]
     public static DaylioCSVDataModel? GetLatestEntry() => _daylioData?.DataSummary?.LatestEntry;
 
     /// <summary>
@@ -38,11 +42,8 @@ public static class Methods
     /// </summary>
     /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
     /// <returns>The <see cref="DaylioCSVDataModel"/> with the latest entry date.</returns>
-    public static DaylioCSVDataModel? GetLatestEntry(this DaylioData daylioData)
-    {
-        InitData(daylioData);
-        return daylioData.DataSummary?.LatestEntry;
-    }
+    public static DaylioCSVDataModel? GetLatestEntry(this DaylioData daylioData) =>
+        daylioData.DataSummary?.LatestEntry;
 
     /// <summary>
     /// Gets <see cref="DaylioCSVDataModel"/> entries in a specified date range.
@@ -51,6 +52,7 @@ public static class Methods
     /// <param name="startDate">The earliest (inclusive) <see cref="DateTime"/> of entries.</param>
     /// <param name="endDate">The latest (inclusive) <see cref="DateTime"/> of entries.</param>
     /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries within the specified date range.</returns>
+    [Obsolete("Use daylioData extension methods for thread safety.")]
     public static IEnumerable<DaylioCSVDataModel>? GetEntriesInRange(DateTime startDate, DateTime endDate)
     {
         return _daylioData?.DataRepo?.CSVData?.Where(entry =>
@@ -69,8 +71,7 @@ public static class Methods
         DateTime startDate,
         DateTime endDate)
     {
-        InitData(daylioData);
-        return daylioData?.DataRepo?.CSVData?.Where(entry =>
+        return daylioData.DataRepo?.CSVData?.Where(entry =>
             entry.Timestamp >= startDate && entry.Timestamp <= endDate);
     }
 
@@ -80,6 +81,7 @@ public static class Methods
     /// </summary>
     /// <param name="activity">An activity string</param>
     /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries that contain the specified activity.</returns>
+    [Obsolete("Use daylioData extension methods for thread safety.")]
     public static IEnumerable<DaylioCSVDataModel>? GetEntriesWithActivity(string activity)
     {
         if (string.IsNullOrWhiteSpace(activity) ||
@@ -100,14 +102,13 @@ public static class Methods
     /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries that contain the specified activity.</returns>
     public static IEnumerable<DaylioCSVDataModel>? GetEntriesWithActivity(this DaylioData daylioData, string activity)
     {
-        InitData(daylioData);
         if (string.IsNullOrWhiteSpace(activity) ||
-            daylioData?.DataRepo?.Activities.Contains(activity) != true)
+            daylioData.DataRepo?.Activities.Contains(activity) != true)
         {
             return null;
         }
 
-        return daylioData?.DataRepo?.CSVData?.Where(entry => entry.ActivitiesCollection
+        return daylioData.DataRepo?.CSVData?.Where(entry => entry.ActivitiesCollection
             .Any(entryActivity => entryActivity.Equals(activity, StringComparison.OrdinalIgnoreCase)));
     }
 
@@ -117,6 +118,7 @@ public static class Methods
     /// </summary>
     /// <param name="mood">A mood string</param>
     /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries that have the specified mood.</returns>
+    [Obsolete("Use daylioData extension methods for thread safety.")]
     public static IEnumerable<DaylioCSVDataModel>? GetEntriesWithMood(string mood)
     {
         if (string.IsNullOrWhiteSpace(mood) ||
@@ -137,14 +139,13 @@ public static class Methods
     /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries that have the specified mood.</returns>
     public static IEnumerable<DaylioCSVDataModel>? GetEntriesWithMood(this DaylioData daylioData, string mood)
     {
-        InitData(daylioData);
         if (string.IsNullOrWhiteSpace(mood) ||
-            daylioData?.DataRepo?.Moods.ContainsKey(mood) != true)
+            daylioData.DataRepo?.Moods.ContainsKey(mood) != true)
         {
             return null;
         }
 
-        return daylioData?.DataRepo?.CSVData?.Where(entry =>
+        return daylioData.DataRepo?.CSVData?.Where(entry =>
             entry.Mood.Equals(mood, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -154,6 +155,7 @@ public static class Methods
     /// </summary>
     /// <param name="activity">An activity string</param>
     /// <returns>The <see cref="int"/> number of activities that include a specified activity.</returns>
+    [Obsolete("Use daylioData extension methods for thread safety.")]
     public static int? GetActivityCount(string activity)
     {
         return _daylioData?.DataRepo?.CSVData?.Count(entry => entry.ActivitiesCollection
@@ -168,18 +170,18 @@ public static class Methods
     /// <returns>The <see cref="int"/> number of activities that include a specified activity.</returns>
     public static int? GetActivityCount(this DaylioData daylioData, string activity)
     {
-        InitData(daylioData);
-        return daylioData?.DataRepo?.CSVData?.Count(entry => entry.ActivitiesCollection
+        return daylioData.DataRepo?.CSVData?.Count(entry => entry.ActivitiesCollection
             .Any(entryActivity => entryActivity.Equals(activity, StringComparison.OrdinalIgnoreCase)));
     }
 
     /// <summary>
-    /// Gets <see cref="DaylioCSVDataModel"/> entries that contain a specified string in the note.
+    /// Gets <see cref="DaylioCSVDataModel"/> entries that contain a specified string in the note or note title.
     /// Assumes that <see cref="DaylioData"/> has been initialized, otherwise returns null.
     /// </summary>
     /// <param name="searchString">The <see cref="string"/> to search for within entries.</param>
     /// <param name="comparisonMethod">The <see cref="StringComparison"/> method to use.</param>
     /// <returns>An <see cref="IEnumerable{DaylioCSVDataModel}"/> of entries that contain the specified search string.</returns>
+    [Obsolete("Use daylioData extension methods for thread safety.")]
     public static IEnumerable<DaylioCSVDataModel>? GetEntriesWithString(
         string searchString,
         StringComparison comparisonMethod = StringComparison.CurrentCulture)
@@ -189,7 +191,7 @@ public static class Methods
     }
 
     /// <summary>
-    /// Gets <see cref="DaylioCSVDataModel"/> entries that contain a specified string in the note.
+    /// Gets <see cref="DaylioCSVDataModel"/> entries that contain a specified string in the note or note title.
     /// </summary>
     /// <param name="daylioData">The <see cref="DaylioData"/> instance to use.</param>
     /// <param name="searchString">The <see cref="string"/> to search for within entries.</param>
@@ -200,9 +202,9 @@ public static class Methods
         string searchString,
         StringComparison comparisonMethod = StringComparison.CurrentCulture)
     {
-        InitData(daylioData);
-        return daylioData?.DataRepo?.CSVData?.Where(entry => !string.IsNullOrWhiteSpace(entry.Note) &&
-            entry.Note.Contains(searchString, comparisonMethod));
+        return daylioData.DataRepo?.CSVData?.Where(entry =>
+            (!string.IsNullOrWhiteSpace(entry.Note) && entry.Note.Contains(searchString, comparisonMethod)) ||
+            (!string.IsNullOrWhiteSpace(entry.NoteTitle) && entry.NoteTitle.Contains(searchString, comparisonMethod)));
     }
 
     /// <summary>
@@ -211,6 +213,7 @@ public static class Methods
     /// </summary>
     /// <param name="activity">The activity name to get an average mood rating for.</param>
     /// <returns>An average <see cref="decimal?"/> mood rating for the specified activity.</returns>
+    [Obsolete("Use daylioData extension methods for thread safety.")]
     public static decimal? GetAverageActivityMood(string activity)
     {
         if (_daylioData is null ||
@@ -232,8 +235,7 @@ public static class Methods
     /// <returns>An average <see cref="decimal?"/> mood rating for the specified activity.</returns>
     public static decimal? GetAverageActivityMood(this DaylioData daylioData, string activity)
     {
-        InitData(daylioData);
-        if (daylioData?.DataRepo is null ||
+        if (daylioData.DataRepo is null ||
             string.IsNullOrWhiteSpace(activity) ||
             !daylioData.DataRepo.Activities.Contains(activity))
         {

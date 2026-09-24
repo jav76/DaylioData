@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DaylioData\DaylioData.csproj" />
+    <ProjectReference Include="..\..\src\DaylioData.Mcp\DaylioData.Mcp.csproj" />
   </ItemGroup>
 
   <ItemGroup>
