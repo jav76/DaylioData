@@ -1,71 +1,107 @@
-﻿using DaylioData.Models;
+using DaylioData.Models;
 
-namespace DaylioData.Repo
+namespace DaylioData.Repo;
+
+/// <summary>
+/// <see cref="DaylioDataRepo"/> Repository for Daylio data read from a CSV file.
+/// </summary>
+public class DaylioDataRepo
 {
-    /// <summary>
-    /// <see cref="DaylioDataRepo"/> Repository for Daylio data read from a CSV file.
-    /// </summary>
-    public class DaylioDataRepo
+    private IEnumerable<DaylioCSVDataModel>? _CSVData;
+    private readonly DaylioFileAccess? _fileAccess;
+    private readonly Dictionary<string, short> _defaultMoods = new(StringComparer.OrdinalIgnoreCase)
     {
+        { "rad", 5 },
+        { "good", 4 },
+        { "meh", 3 },
+        { "bad", 2 },
+        { "awful", 1 }
+    };
 
-        private IEnumerable<DaylioCSVDataModel>? _CSVData;
-        private DaylioFileAccess? _fileAccess;
+    public IEnumerable<DaylioCSVDataModel>? CSVData => _CSVData;
+    public HashSet<string> Activities { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, short?> Moods { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
 
-        public IEnumerable<DaylioCSVDataModel>? CSVData => _CSVData;
-        public HashSet<string> Activities = new HashSet<string>();
-        public HashSet<string> Moods = new HashSet<string>();
+    internal DaylioDataRepo(DaylioFileAccess fileAccess)
+    {
+        _fileAccess = fileAccess;
+        _CSVData = _fileAccess.TryReadFile();
+        InitializeActivities();
+        InitializeMoods();
+    }
 
-        internal DaylioDataRepo(DaylioFileAccess fileAccess)
+    public void UpdateFile(string filePath)
+    {
+        _fileAccess?.SetFilePath(filePath);
+        _CSVData = _fileAccess?.TryReadFile();
+        Activities.Clear();
+        Moods.Clear();
+        InitializeActivities();
+        InitializeMoods();
+    }
+
+    /// <summary>
+    /// Used to set custom mood levels.
+    /// </summary>
+    /// <param name="moodName">The name of the mood to set a level for.</param>
+    /// <param name="moodLevel">The level to set for the mood.</param>
+    public void SetMoodLevel(string moodName, short? moodLevel)
+    {
+        if (Moods.ContainsKey(moodName))
         {
-            _fileAccess = fileAccess;
-            _CSVData = _fileAccess.TryReadFile();
-            InitializeActivities();
-            InitializeMoods();
+            Moods[moodName] = moodLevel;
+        }
+    }
+
+    /// <summary>
+    /// Sets mood levels based on Daylio's default moods without removing custom moods. <br></br>
+    /// Rad - 5, Good - 4, Meh - 3, Bad - 2, Awful - 1
+    /// </summary>
+    public void SetDefaultMoodLevels()
+    {
+        foreach (KeyValuePair<string, short> mood in _defaultMoods)
+        {
+            if (Moods.ContainsKey(mood.Key))
+            {
+                Moods[mood.Key] = mood.Value;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Moods can be customized and can be any string. This will keep track of all unique moods.
+    /// </summary>
+    private void InitializeMoods()
+    {
+        if (_CSVData is null)
+        {
+            return;
         }
 
-        public void UpdateFile(string filePath)
+        foreach (DaylioCSVDataModel entry in _CSVData)
         {
-            _fileAccess?.SetFilePath(filePath);
-            _CSVData = _fileAccess?.TryReadFile();
-            Activities.Clear();
-            Moods.Clear();
-            InitializeActivities();
-            InitializeMoods();
-        }
-
-        /// <summary>
-        /// Moods can be customized and can be any string. This will keep track of all unique moods.
-        /// </summary>
-        /// <remarks>Unfortunately there is no way to assign a scale to the moods from the CSV data. This could potentially eventually be done through a manual assignment extension. </remarks>
-        private void InitializeMoods()
-        {
-            if (_CSVData == null)
+            if (!string.IsNullOrWhiteSpace(entry.Mood) && !Moods.ContainsKey(entry.Mood))
             {
-                return;
-            }
-
-            foreach (string? mood in _CSVData.Select(x => x.Mood).Distinct())
-            {
-                if (mood != null)
-                {
-                    Moods.Add(mood);
-                }
+                Moods.Add(entry.Mood, null);
             }
         }
+    }
 
-        /// <summary>
-        /// There can be any number of custom activities. This will keep track of all unique activities.
-        /// </summary>
-        private void InitializeActivities()
+    /// <summary>
+    /// There can be any number of custom activities. This will keep track of all unique activities.
+    /// </summary>
+    private void InitializeActivities()
+    {
+        if (_CSVData is null)
         {
-            if (_CSVData == null)
-            {
-                return;
-            }
+            return;
+        }
 
-            foreach (string activitiy in _CSVData.Select(x => x.Activities?.Split(" | ")).SelectMany(x => x ?? Array.Empty<string>()))
+        foreach (DaylioCSVDataModel entry in _CSVData)
+        {
+            foreach (string activity in entry.ActivitiesCollection)
             {
-                Activities.Add(activitiy);
+                Activities.Add(activity);
             }
         }
     }

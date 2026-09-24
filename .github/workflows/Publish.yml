@@ -41,7 +41,7 @@ jobs:
       run: dotnet build src/DaylioData/DaylioData.sln --configuration Release --no-restore
 
     - name: Test
-      run: dotnet test src/DaylioData/DaylioData.sln --no-restore --verbosity normal
+      run: dotnet test src/DaylioData/DaylioData.sln --configuration Release --no-build --verbosity normal
 
     - name: Pack
       run: dotnet pack src/DaylioData/DaylioData.sln --no-build --configuration Release --output BuildResults
