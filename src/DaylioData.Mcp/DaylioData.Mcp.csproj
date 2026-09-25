@@ -13,8 +13,8 @@
     <RepositoryUrl>https://github.com/jav76/DaylioData</RepositoryUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <AssemblyVersion>0.1.0.0</AssemblyVersion>
-    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.1.0</AssemblyVersion>
+    <Version>0.1.1</Version>
     <NoWarn>$(NoWarn);NU1900</NoWarn>
   </PropertyGroup>
 
