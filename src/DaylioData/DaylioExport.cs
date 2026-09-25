@@ -25,24 +25,24 @@ public static class DaylioExport
         sb.AppendLine(CultureInfo.InvariantCulture, $"# {reportTitle}");
         sb.AppendLine();
 
-        DaylioDataSummary? summary = daylioData.DataSummary;
+        DaylioDataSummary summary = daylioData.DataSummary;
         StreakDetails streaks = daylioData.GetStreakDetails();
 
         sb.AppendLine("## Summary Overview");
         sb.AppendLine();
-        sb.AppendLine(CultureInfo.InvariantCulture, $"- **Total Entries**: {summary?.TotalEntries ?? 0}");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"- **Total Days Tracked**: {summary?.TotalDays ?? 0}");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"- **Average Entries / Day**: {(summary?.AverageEntriesPerDay ?? 0.0):F2}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"- **Total Entries**: {summary.TotalEntries}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"- **Total Days Tracked**: {summary.TotalDays}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"- **Average Entries / Day**: {summary.AverageEntriesPerDay:F2}");
         sb.AppendLine(CultureInfo.InvariantCulture, $"- **Longest Daily Streak**: {streaks.LongestStreak} days");
         sb.AppendLine(CultureInfo.InvariantCulture, $"- **Current Daily Streak**: {streaks.CurrentStreak} days");
 
-        if (summary?.EarliestEntry is not null && summary?.LatestEntry is not null)
+        if (summary.EarliestEntry is not null && summary.LatestEntry is not null)
         {
             sb.AppendLine(CultureInfo.InvariantCulture, $"- **Date Range**: {summary.EarliestEntry.FullDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)} to {summary.LatestEntry.FullDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
         }
 
-        sb.AppendLine(CultureInfo.InvariantCulture, $"- **Distinct Activities**: {summary?.DistinctActivitiesCount ?? 0}");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"- **Total Note Word Count**: {summary?.NoteTotalWordCount ?? 0}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"- **Distinct Activities**: {summary.DistinctActivitiesCount}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"- **Total Note Word Count**: {summary.NoteTotalWordCount}");
         sb.AppendLine();
 
         // Mood Distribution
@@ -156,18 +156,18 @@ public static class DaylioExport
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
-        DaylioDataSummary? summary = daylioData.DataSummary;
+        DaylioDataSummary summary = daylioData.DataSummary;
         StreakDetails streaks = daylioData.GetStreakDetails();
 
         DaylioExportData payload = new(
-            TotalEntries: summary?.TotalEntries ?? 0,
-            TotalDays: summary?.TotalDays ?? 0,
-            AverageEntriesPerDay: summary?.AverageEntriesPerDay ?? 0.0,
-            DistinctActivitiesCount: summary?.DistinctActivitiesCount ?? 0,
-            TotalActivitiesCount: summary?.TotalActivitiesCount ?? 0,
-            NoteTotalWordCount: summary?.NoteTotalWordCount ?? 0,
-            EarliestDate: summary?.EarliestEntry?.FullDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-            LatestDate: summary?.LatestEntry?.FullDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            TotalEntries: summary.TotalEntries,
+            TotalDays: summary.TotalDays,
+            AverageEntriesPerDay: summary.AverageEntriesPerDay,
+            DistinctActivitiesCount: summary.DistinctActivitiesCount,
+            TotalActivitiesCount: summary.TotalActivitiesCount,
+            NoteTotalWordCount: summary.NoteTotalWordCount,
+            EarliestDate: summary.EarliestEntry?.FullDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            LatestDate: summary.LatestEntry?.FullDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             Streaks: streaks,
             MoodDistribution: daylioData.GetMoodDistribution(),
             TopActivities: daylioData.GetTopActivities(15),

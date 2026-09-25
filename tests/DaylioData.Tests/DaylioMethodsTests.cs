@@ -21,7 +21,7 @@ public class DaylioMethodsTests
         DateTime start = new(2023, 1, 1, 12, 0, 0);
         DateTime end = new(2023, 1, 2, 12, 0, 0);
 
-        List<DaylioCSVDataModel> inRange = daylioData.GetEntriesInRange(start, end)!.ToList();
+        IReadOnlyList<DaylioCSVDataModel> inRange = daylioData.GetEntriesInRange(start, end);
 
         Assert.Equal(2, inRange.Count);
         Assert.Equal(new TimeOnly(14, 0), inRange[0].Time);
@@ -29,7 +29,7 @@ public class DaylioMethodsTests
     }
 
     [Fact]
-    public void GetEntriesInRange_StaticMethod_MatchesExtensionResult()
+    public void GetEntriesInRange_StaticExtension_MatchesInstanceResult()
     {
         using StringReader reader = new(SAMPLE_CSV);
         DaylioData daylioData = new(reader);
@@ -37,11 +37,11 @@ public class DaylioMethodsTests
         DateTime start = new(2023, 1, 1, 0, 0, 0);
         DateTime end = new(2023, 1, 3, 23, 59, 59);
 
-        List<DaylioCSVDataModel> extensionResult = daylioData.GetEntriesInRange(start, end)!.ToList();
-        List<DaylioCSVDataModel> staticResult = Methods.GetEntriesInRange(daylioData, start, end)!.ToList();
+        IReadOnlyList<DaylioCSVDataModel> instanceResult = daylioData.GetEntriesInRange(start, end);
+        IReadOnlyList<DaylioCSVDataModel> extensionResult = DaylioQueryExtensions.GetEntriesInRange(daylioData, start, end);
 
-        Assert.Equal(5, extensionResult.Count);
-        Assert.Equal(extensionResult.Count, staticResult.Count);
+        Assert.Equal(5, instanceResult.Count);
+        Assert.Equal(instanceResult.Count, extensionResult.Count);
     }
 
     [Fact]
@@ -50,20 +50,21 @@ public class DaylioMethodsTests
         using StringReader reader = new(SAMPLE_CSV);
         DaylioData daylioData = new(reader);
 
-        List<DaylioCSVDataModel> codingEntries = daylioData.GetEntriesWithActivity("CODING")!.ToList();
+        IReadOnlyList<DaylioCSVDataModel> codingEntries = daylioData.GetEntriesWithActivity("CODING");
 
         Assert.Equal(2, codingEntries.Count);
     }
 
     [Fact]
-    public void GetEntriesWithActivity_NonExistent_ReturnsNull()
+    public void GetEntriesWithActivity_NonExistent_ReturnsEmpty()
     {
         using StringReader reader = new(SAMPLE_CSV);
         DaylioData daylioData = new(reader);
 
-        IEnumerable<DaylioCSVDataModel>? result = daylioData.GetEntriesWithActivity("skydiving");
+        IReadOnlyList<DaylioCSVDataModel> result = daylioData.GetEntriesWithActivity("skydiving");
 
-        Assert.Null(result);
+        Assert.NotNull(result);
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -72,9 +73,21 @@ public class DaylioMethodsTests
         using StringReader reader = new(SAMPLE_CSV);
         DaylioData daylioData = new(reader);
 
-        List<DaylioCSVDataModel> radEntries = daylioData.GetEntriesWithMood("RAD")!.ToList();
+        IReadOnlyList<DaylioCSVDataModel> radEntries = daylioData.GetEntriesWithMood("RAD");
 
         Assert.Equal(2, radEntries.Count);
+    }
+
+    [Fact]
+    public void GetEntriesWithMood_NonExistent_ReturnsEmpty()
+    {
+        using StringReader reader = new(SAMPLE_CSV);
+        DaylioData daylioData = new(reader);
+
+        IReadOnlyList<DaylioCSVDataModel> result = daylioData.GetEntriesWithMood("nonexistent");
+
+        Assert.NotNull(result);
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -83,9 +96,20 @@ public class DaylioMethodsTests
         using StringReader reader = new(SAMPLE_CSV);
         DaylioData daylioData = new(reader);
 
-        int? count = daylioData.GetActivityCount("coding");
+        int count = daylioData.GetActivityCount("coding");
 
         Assert.Equal(2, count);
+    }
+
+    [Fact]
+    public void GetActivityCount_NonExistent_ReturnsZero()
+    {
+        using StringReader reader = new(SAMPLE_CSV);
+        DaylioData daylioData = new(reader);
+
+        int count = daylioData.GetActivityCount("nonexistent");
+
+        Assert.Equal(0, count);
     }
 
     [Fact]
@@ -94,10 +118,27 @@ public class DaylioMethodsTests
         using StringReader reader = new(SAMPLE_CSV);
         DaylioData daylioData = new(reader);
 
-        List<DaylioCSVDataModel> matches = daylioData.GetEntriesWithString("unit tests")!.ToList();
+        IReadOnlyList<DaylioCSVDataModel> matches = daylioData.GetEntriesWithString("unit tests");
 
         Assert.Single(matches);
         Assert.Equal("Code", matches[0].NoteTitle);
+    }
+
+    [Fact]
+    public void GetEarliestAndLatestEntry_ReturnsCorrectEntries()
+    {
+        using StringReader reader = new(SAMPLE_CSV);
+        DaylioData daylioData = new(reader);
+
+        DaylioCSVDataModel? earliest = daylioData.GetEarliestEntry();
+        DaylioCSVDataModel? latest = daylioData.GetLatestEntry();
+
+        Assert.NotNull(earliest);
+        Assert.NotNull(latest);
+        Assert.Equal(new DateOnly(2023, 1, 1), earliest.FullDate);
+        Assert.Equal(new TimeOnly(8, 0), earliest.Time);
+        Assert.Equal(new DateOnly(2023, 1, 3), latest.FullDate);
+        Assert.Equal(new TimeOnly(11, 0), latest.Time);
     }
 
     [Fact]
@@ -106,7 +147,7 @@ public class DaylioMethodsTests
         using StringReader reader = new(SAMPLE_CSV);
         DaylioData daylioData = new(reader);
 
-        daylioData.DataRepo!.SetDefaultMoodLevels();
+        daylioData.DataRepo.SetDefaultMoodLevels();
 
         decimal? average = daylioData.GetAverageActivityMood("coding");
 
@@ -120,7 +161,7 @@ public class DaylioMethodsTests
         using StringReader reader = new(SAMPLE_CSV);
         DaylioData daylioData = new(reader);
 
-        daylioData.DataRepo!.SetMoodLevel("good", 4);
+        daylioData.DataRepo.SetMoodLevel("good", 4);
 
         decimal? average = daylioData.GetAverageActivityMood("reading");
 

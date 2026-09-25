@@ -7,7 +7,7 @@ namespace DaylioData.Repo;
 /// </summary>
 public class DaylioDataRepo
 {
-    private IEnumerable<DaylioCSVDataModel>? _CSVData;
+    private IReadOnlyList<DaylioCSVDataModel> _CSVData = Array.Empty<DaylioCSVDataModel>();
     private readonly DaylioFileAccess? _fileAccess;
     private readonly Dictionary<string, short> _defaultMoods = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -18,22 +18,26 @@ public class DaylioDataRepo
         { "awful", 1 }
     };
 
-    public IEnumerable<DaylioCSVDataModel>? CSVData => _CSVData;
+    internal event Action? DataChanged;
+
+    public IReadOnlyList<DaylioCSVDataModel> CSVData => _CSVData;
     public HashSet<string> Activities { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, short?> Moods { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
 
-    internal DaylioDataRepo(DaylioFileAccess fileAccess)
+    internal DaylioDataRepo(DaylioFileAccess fileAccess, bool failFast = true)
     {
         _fileAccess = fileAccess;
-        _CSVData = _fileAccess.TryReadFile();
+        _CSVData = failFast
+            ? _fileAccess.ReadFile()
+            : _fileAccess.TryReadFile() ?? Array.Empty<DaylioCSVDataModel>();
         InitializeActivities();
         InitializeMoods();
     }
 
-    private DaylioDataRepo(DaylioFileAccess fileAccess, IEnumerable<DaylioCSVDataModel>? csvData)
+    internal DaylioDataRepo(DaylioFileAccess fileAccess, IReadOnlyList<DaylioCSVDataModel>? csvData)
     {
         _fileAccess = fileAccess;
-        _CSVData = csvData;
+        _CSVData = csvData ?? Array.Empty<DaylioCSVDataModel>();
         InitializeActivities();
         InitializeMoods();
     }
@@ -42,18 +46,27 @@ public class DaylioDataRepo
         DaylioFileAccess fileAccess,
         CancellationToken cancellationToken = default)
     {
-        IEnumerable<DaylioCSVDataModel>? csvData = await fileAccess.TryReadFileAsync(cancellationToken);
+        IReadOnlyList<DaylioCSVDataModel> csvData = await fileAccess.ReadFileAsync(cancellationToken);
         return new DaylioDataRepo(fileAccess, csvData);
+    }
+
+    internal static async Task<DaylioDataRepo?> TryCreateAsync(
+        DaylioFileAccess fileAccess,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<DaylioCSVDataModel>? csvData = await fileAccess.TryReadFileAsync(cancellationToken);
+        return csvData is null ? null : new DaylioDataRepo(fileAccess, csvData);
     }
 
     public void UpdateFile(string filePath)
     {
         _fileAccess?.SetFilePath(filePath);
-        _CSVData = _fileAccess?.TryReadFile();
+        _CSVData = _fileAccess?.TryReadFile() ?? Array.Empty<DaylioCSVDataModel>();
         Activities.Clear();
         Moods.Clear();
         InitializeActivities();
         InitializeMoods();
+        DataChanged?.Invoke();
     }
 
     public async Task UpdateFileAsync(
@@ -62,12 +75,13 @@ public class DaylioDataRepo
     {
         _fileAccess?.SetFilePath(filePath);
         _CSVData = _fileAccess is null
-            ? null
-            : await _fileAccess.TryReadFileAsync(cancellationToken);
+            ? Array.Empty<DaylioCSVDataModel>()
+            : (await _fileAccess.TryReadFileAsync(cancellationToken)) ?? Array.Empty<DaylioCSVDataModel>();
         Activities.Clear();
         Moods.Clear();
         InitializeActivities();
         InitializeMoods();
+        DataChanged?.Invoke();
     }
 
     /// <summary>
@@ -103,11 +117,6 @@ public class DaylioDataRepo
     /// </summary>
     private void InitializeMoods()
     {
-        if (_CSVData is null)
-        {
-            return;
-        }
-
         foreach (DaylioCSVDataModel entry in _CSVData)
         {
             if (!string.IsNullOrWhiteSpace(entry.Mood) && !Moods.ContainsKey(entry.Mood))
@@ -122,11 +131,6 @@ public class DaylioDataRepo
     /// </summary>
     private void InitializeActivities()
     {
-        if (_CSVData is null)
-        {
-            return;
-        }
-
         foreach (DaylioCSVDataModel entry in _CSVData)
         {
             foreach (string activity in entry.ActivitiesCollection)

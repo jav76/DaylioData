@@ -36,7 +36,7 @@ public class DaylioAsyncLoadingTests
 
         Assert.NotNull(daylioData.DataRepo);
         Assert.NotNull(daylioData.DataRepo.CSVData);
-        Assert.Equal(3, daylioData.DataRepo.CSVData.Count());
+        Assert.Equal(3, daylioData.DataRepo.CSVData.Count);
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public class DaylioAsyncLoadingTests
             DaylioData daylioData = await DaylioData.LoadAsync(tempFilePath);
 
             Assert.NotNull(daylioData.DataRepo);
-            Assert.Equal(3, daylioData.DataSummary?.TotalEntries);
+            Assert.Equal(3, daylioData.DataSummary.TotalEntries);
         }
         finally
         {
@@ -61,14 +61,88 @@ public class DaylioAsyncLoadingTests
     }
 
     [Fact]
-    public async Task LoadAsync_WithEmptyStream_ReturnsEmptyOrNullDataset()
+    public void Constructor_WithNonExistentFile_ThrowsFileNotFoundException()
+    {
+        Assert.Throws<FileNotFoundException>(() => new DaylioData("non_existent_daylio_file_12345.csv"));
+    }
+
+    [Fact]
+    public void Constructor_WithNullOrWhitespaceFilePath_ThrowsArgumentException()
+    {
+        Assert.Throws<ArgumentException>(() => new DaylioData("   "));
+    }
+
+    [Fact]
+    public void TryLoad_WithNonExistentFile_ReturnsFalse()
+    {
+        bool success = DaylioData.TryLoad("non_existent_daylio_file_12345.csv", out DaylioData? daylioData);
+
+        Assert.False(success);
+        Assert.Null(daylioData);
+    }
+
+    [Fact]
+    public void TryLoad_WithValidFile_ReturnsTrueAndPopulatesData()
+    {
+        string tempFilePath = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(tempFilePath, SAMPLE_CSV);
+            bool success = DaylioData.TryLoad(tempFilePath, out DaylioData? daylioData);
+
+            Assert.True(success);
+            Assert.NotNull(daylioData);
+            Assert.Equal(3, daylioData.DataSummary.TotalEntries);
+        }
+        finally
+        {
+            if (File.Exists(tempFilePath))
+            {
+                File.Delete(tempFilePath);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task TryLoadAsync_WithNonExistentFile_ReturnsFalse()
+    {
+        (bool success, DaylioData? daylioData) = await DaylioData.TryLoadAsync("non_existent_daylio_file_12345.csv");
+
+        Assert.False(success);
+        Assert.Null(daylioData);
+    }
+
+    [Fact]
+    public async Task TryLoadAsync_WithValidFile_ReturnsTrueAndPopulatesData()
+    {
+        string tempFilePath = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllTextAsync(tempFilePath, SAMPLE_CSV);
+            (bool success, DaylioData? daylioData) = await DaylioData.TryLoadAsync(tempFilePath);
+
+            Assert.True(success);
+            Assert.NotNull(daylioData);
+            Assert.Equal(3, daylioData.DataSummary.TotalEntries);
+        }
+        finally
+        {
+            if (File.Exists(tempFilePath))
+            {
+                File.Delete(tempFilePath);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task LoadAsync_WithEmptyStream_ReturnsEmptyDataset()
     {
         using MemoryStream emptyStream = new(Array.Empty<byte>());
         DaylioData daylioData = await DaylioData.LoadAsync(emptyStream);
 
         Assert.NotNull(daylioData.DataRepo);
-        Assert.True(daylioData.DataRepo.CSVData is null || !daylioData.DataRepo.CSVData.Any());
-        Assert.Equal(0, daylioData.DataSummary?.TotalEntries);
+        Assert.Empty(daylioData.DataRepo.CSVData);
+        Assert.Equal(0, daylioData.DataSummary.TotalEntries);
     }
 
     [Fact]
@@ -85,7 +159,7 @@ public class DaylioAsyncLoadingTests
     }
 
     [Fact]
-    public async Task UpdateFileAsync_UpdatesRepositoryData()
+    public async Task UpdateFileAsync_UpdatesRepositoryDataAndRefreshesSummary()
     {
         string tempFilePath1 = Path.GetTempFileName();
         string tempFilePath2 = Path.GetTempFileName();
@@ -99,10 +173,11 @@ public class DaylioAsyncLoadingTests
             await File.WriteAllTextAsync(tempFilePath2, secondCsv);
 
             DaylioData daylioData = await DaylioData.LoadAsync(tempFilePath1);
-            Assert.Equal(3, daylioData.DataSummary?.TotalEntries);
+            Assert.Equal(3, daylioData.DataSummary.TotalEntries);
 
-            await daylioData.DataRepo!.UpdateFileAsync(tempFilePath2);
-            Assert.Equal(1, daylioData.DataRepo.CSVData?.Count());
+            await daylioData.DataRepo.UpdateFileAsync(tempFilePath2);
+            Assert.Single(daylioData.DataRepo.CSVData);
+            Assert.Equal(1, daylioData.DataSummary.TotalEntries);
             Assert.True(daylioData.DataRepo.Activities.Contains("yoga"));
             Assert.False(daylioData.DataRepo.Activities.Contains("running"));
         }
