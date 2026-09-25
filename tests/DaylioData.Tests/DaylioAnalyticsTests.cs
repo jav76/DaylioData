@@ -66,4 +66,67 @@ public class DaylioAnalyticsTests
         Assert.Equal(5.0m, weekdayMoods[DayOfWeek.Wednesday]);
         Assert.Equal(3.0m, weekdayMoods[DayOfWeek.Friday]);
     }
+
+    [Fact]
+    public void GetActivityMoodImpact_CalculatesImpactAccurately()
+    {
+        using StringReader reader = new(ANALYTICS_CSV);
+        DaylioData daylioData = new(reader);
+
+        ActivityMoodImpact? runningImpact = daylioData.GetActivityMoodImpact("running");
+
+        Assert.NotNull(runningImpact);
+        Assert.Equal("running", runningImpact.Activity);
+        Assert.Equal(3, runningImpact.FrequencyWith);
+        Assert.Equal(2, runningImpact.FrequencyWithout);
+        // With: (4 + 4 + 5) / 3 = 4.333...
+        // Without: (5 + 3) / 2 = 4.0
+        Assert.True(runningImpact.AverageMoodWith > 4.33m && runningImpact.AverageMoodWith < 4.34m);
+        Assert.Equal(4.0m, runningImpact.AverageMoodWithout);
+        Assert.True(runningImpact.Delta > 0.33m && runningImpact.Delta < 0.34m);
+    }
+
+    [Fact]
+    public void GetAllActivityMoodImpacts_RanksByDeltaDescending()
+    {
+        using StringReader reader = new(ANALYTICS_CSV);
+        DaylioData daylioData = new(reader);
+
+        IReadOnlyList<ActivityMoodImpact> impacts = daylioData.GetAllActivityMoodImpacts(minOccurrences: 1);
+
+        Assert.NotEmpty(impacts);
+        // Verify descending order by Delta
+        for (int i = 1; i < impacts.Count; i++)
+        {
+            Assert.True(impacts[i - 1].Delta >= impacts[i].Delta);
+        }
+    }
+
+    [Fact]
+    public void GetMoodByTimeOfDay_GroupsByCanonicalPeriods()
+    {
+        using StringReader reader = new(ANALYTICS_CSV);
+        DaylioData daylioData = new(reader);
+
+        IReadOnlyDictionary<TimeOfDayPeriod, TimeOfDayMood> trends = daylioData.GetMoodByTimeOfDay();
+
+        Assert.True(trends.ContainsKey(TimeOfDayPeriod.Morning));
+        Assert.True(trends.ContainsKey(TimeOfDayPeriod.Afternoon));
+        Assert.Equal(3, trends[TimeOfDayPeriod.Morning].EntryCount); // 09:00, 10:00, 11:00
+        Assert.Equal(2, trends[TimeOfDayPeriod.Afternoon].EntryCount); // 12:00, 14:00
+    }
+
+    [Fact]
+    public void GetStreakDetails_ReturnsComprehensiveStreakInformation()
+    {
+        using StringReader reader = new(ANALYTICS_CSV);
+        DaylioData daylioData = new(reader);
+
+        StreakDetails details = daylioData.GetStreakDetails();
+
+        Assert.Equal(4, details.LongestStreak);
+        Assert.Equal(1, details.CurrentStreak);
+        Assert.Equal(new DateOnly(2023, 1, 6), details.StreakEndDate);
+        Assert.Equal(new DateOnly(2023, 1, 6), details.StreakStartDate);
+    }
 }

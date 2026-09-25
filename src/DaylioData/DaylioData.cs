@@ -22,7 +22,9 @@ public class DaylioData
     {
         _dataRepo = new(new DaylioFileAccess(filePath));
         _dataSummary = new(_dataRepo);
+#pragma warning disable CS0618
         Methods.InitData(this);
+#pragma warning restore CS0618
     }
 
     /// <summary>
@@ -33,7 +35,9 @@ public class DaylioData
     {
         _dataRepo = new(new DaylioFileAccess(reader));
         _dataSummary = new(_dataRepo);
+#pragma warning disable CS0618
         Methods.InitData(this);
+#pragma warning restore CS0618
     }
 
     /// <summary>
@@ -44,7 +48,9 @@ public class DaylioData
     {
         _dataRepo = new(new DaylioFileAccess(stream));
         _dataSummary = new(_dataRepo);
+#pragma warning disable CS0618
         Methods.InitData(this);
+#pragma warning restore CS0618
     }
 
     /// <summary>
