@@ -99,4 +99,70 @@ public class DaylioFileAccess
             return null;
         }
     }
+
+    internal async Task<IEnumerable<DaylioCSVDataModel>?> TryReadFileAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (_textReader is not null)
+        {
+            return await TryReadAsync(_textReader, cancellationToken);
+        }
+
+        if (string.IsNullOrWhiteSpace(_filePath))
+        {
+            return null;
+        }
+
+        try
+        {
+            using StreamReader streamReader = new(_filePath);
+            return await TryReadAsync(streamReader, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    internal static async Task<IEnumerable<DaylioCSVDataModel>?> TryReadAsync(
+        TextReader reader,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        CsvHelper.Configuration.CsvConfiguration readerConfig = new(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = true,
+            Delimiter = ",",
+            IgnoreBlankLines = true,
+            TrimOptions = CsvHelper.Configuration.TrimOptions.Trim,
+            BadDataFound = null,
+            PrepareHeaderForMatch = args => args.Header.ToLower(CultureInfo.InvariantCulture).Replace("_", string.Empty)
+        };
+
+        try
+        {
+            using CsvReader csvReader = new(reader, readerConfig);
+            List<DaylioCSVDataModel> records = new();
+            await foreach (DaylioCSVDataModel record in csvReader.GetRecordsAsync<DaylioCSVDataModel>(cancellationToken))
+            {
+                records.Add(record);
+            }
+
+            return records;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
 }
