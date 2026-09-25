@@ -275,18 +275,11 @@ public static class ToolHandler
         try
         {
             DaylioData loaded = new(filePath);
-            if (loaded.DataRepo?.CSVData is null)
-            {
-                return new ToolCallResult(
-                    new List<ToolCallContent> { new("text", $"Failed to parse CSV data from: '{filePath}'.") },
-                    IsError: true);
-            }
-
             setDataset(loaded, filePath);
-            int total = loaded.DataSummary?.TotalEntries ?? 0;
-            int days = loaded.DataSummary?.TotalDays ?? 0;
-            string earliest = loaded.DataSummary?.EarliestEntry?.FullDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "N/A";
-            string latest = loaded.DataSummary?.LatestEntry?.FullDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "N/A";
+            int total = loaded.DataSummary.TotalEntries;
+            int days = loaded.DataSummary.TotalDays;
+            string earliest = loaded.DataSummary.EarliestEntry?.FullDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "N/A";
+            string latest = loaded.DataSummary.LatestEntry?.FullDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "N/A";
 
             string msg = $"Successfully loaded Daylio dataset from '{filePath}'.\n" +
                          $"- Entries: {total}\n" +
@@ -305,19 +298,19 @@ public static class ToolHandler
 
     private static ToolCallResult ExecuteGetSummary(DaylioData daylioData)
     {
-        DaylioDataSummary? s = daylioData.DataSummary;
+        DaylioDataSummary s = daylioData.DataSummary;
         StreakDetails streaks = daylioData.GetStreakDetails();
 
         object summaryObj = new
         {
-            totalEntries = s?.TotalEntries ?? 0,
-            totalDays = s?.TotalDays ?? 0,
-            averageEntriesPerDay = s?.AverageEntriesPerDay ?? 0.0,
-            distinctActivitiesCount = s?.DistinctActivitiesCount ?? 0,
-            totalActivitiesCount = s?.TotalActivitiesCount ?? 0,
-            noteTotalWordCount = s?.NoteTotalWordCount ?? 0,
-            earliestDate = s?.EarliestEntry?.FullDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-            latestDate = s?.LatestEntry?.FullDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            totalEntries = s.TotalEntries,
+            totalDays = s.TotalDays,
+            averageEntriesPerDay = s.AverageEntriesPerDay,
+            distinctActivitiesCount = s.DistinctActivitiesCount,
+            totalActivitiesCount = s.TotalActivitiesCount,
+            noteTotalWordCount = s.NoteTotalWordCount,
+            earliestDate = s.EarliestEntry?.FullDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            latestDate = s.LatestEntry?.FullDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             longestStreak = streaks.LongestStreak,
             currentStreak = streaks.CurrentStreak
         };

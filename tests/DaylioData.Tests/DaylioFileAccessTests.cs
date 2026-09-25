@@ -14,16 +14,15 @@ public class DaylioFileAccessTests
     public void TryRead_WithValidTextReader_ReturnsRecords()
     {
         using StringReader reader = new(VALID_CSV);
-        IEnumerable<DaylioCSVDataModel>? records = DaylioFileAccess.TryRead(reader);
+        IReadOnlyList<DaylioCSVDataModel>? records = DaylioFileAccess.TryRead(reader);
 
         Assert.NotNull(records);
-        List<DaylioCSVDataModel> list = records.ToList();
-        Assert.Single(list);
-        Assert.Equal("good", list[0].Mood);
-        Assert.Equal("Sprint Planning", list[0].NoteTitle);
-        Assert.Equal(new DateOnly(2023, 3, 1), list[0].FullDate);
-        Assert.Equal(new TimeOnly(9, 15), list[0].Time);
-        Assert.Equal(new DateTime(2023, 3, 1, 9, 15, 0), list[0].Timestamp);
+        Assert.Single(records);
+        Assert.Equal("good", records[0].Mood);
+        Assert.Equal("Sprint Planning", records[0].NoteTitle);
+        Assert.Equal(new DateOnly(2023, 3, 1), records[0].FullDate);
+        Assert.Equal(new TimeOnly(9, 15), records[0].Time);
+        Assert.Equal(new DateTime(2023, 3, 1, 9, 15, 0), records[0].Timestamp);
     }
 
     [Fact]
@@ -33,7 +32,7 @@ public class DaylioFileAccessTests
         using MemoryStream stream = new(bytes);
         using StreamReader streamReader = new(stream);
 
-        IEnumerable<DaylioCSVDataModel>? records = DaylioFileAccess.TryRead(streamReader);
+        IReadOnlyList<DaylioCSVDataModel>? records = DaylioFileAccess.TryRead(streamReader);
 
         Assert.NotNull(records);
         Assert.Single(records);
@@ -45,7 +44,7 @@ public class DaylioFileAccessTests
         string corruptCsv = "some_random_column,another_column\n1,2\n";
         using StringReader reader = new(corruptCsv);
 
-        IEnumerable<DaylioCSVDataModel>? records = DaylioFileAccess.TryRead(reader);
+        IReadOnlyList<DaylioCSVDataModel>? records = DaylioFileAccess.TryRead(reader);
 
         Assert.Null(records);
     }
@@ -54,8 +53,37 @@ public class DaylioFileAccessTests
     public void TryReadFile_WithNonExistentPath_ReturnsNullWithoutThrowing()
     {
         DaylioFileAccess fileAccess = new("non_existent_file_path_12345.csv");
-        IEnumerable<DaylioCSVDataModel>? records = fileAccess.TryReadFile();
+        IReadOnlyList<DaylioCSVDataModel>? records = fileAccess.TryReadFile();
 
         Assert.Null(records);
+    }
+
+    [Fact]
+    public void ReadFile_WithNonExistentPath_ThrowsFileNotFoundException()
+    {
+        DaylioFileAccess fileAccess = new("non_existent_file_path_12345.csv");
+        Assert.Throws<FileNotFoundException>(() => fileAccess.ReadFile());
+    }
+
+    [Fact]
+    public void ReadFile_WithCorruptedHeader_ThrowsInvalidDataExceptionWithInnerException()
+    {
+        string corruptCsv = "some_random_column,another_column\n1,2\n";
+        using StringReader reader = new(corruptCsv);
+        DaylioFileAccess fileAccess = new(reader);
+
+        InvalidDataException ex = Assert.Throws<InvalidDataException>(() => fileAccess.ReadFile());
+        Assert.NotNull(ex.InnerException);
+    }
+
+    [Fact]
+    public async Task ReadFileAsync_WithCorruptedHeader_ThrowsInvalidDataExceptionWithInnerException()
+    {
+        string corruptCsv = "some_random_column,another_column\n1,2\n";
+        using StringReader reader = new(corruptCsv);
+        DaylioFileAccess fileAccess = new(reader);
+
+        InvalidDataException ex = await Assert.ThrowsAsync<InvalidDataException>(() => fileAccess.ReadFileAsync());
+        Assert.NotNull(ex.InnerException);
     }
 }

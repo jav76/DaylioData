@@ -15,8 +15,8 @@ public static class DaylioAnalytics
     public static IReadOnlyDictionary<string, int> GetMoodDistribution(this DaylioData daylioData)
     {
         Dictionary<string, int> distribution = new(StringComparer.OrdinalIgnoreCase);
-        IEnumerable<DaylioCSVDataModel>? entries = daylioData.DataRepo?.CSVData;
-        if (entries is null)
+        IReadOnlyList<DaylioCSVDataModel> entries = daylioData.DataRepo.CSVData;
+        if (entries.Count == 0)
         {
             return distribution;
         }
@@ -50,8 +50,8 @@ public static class DaylioAnalytics
     public static IReadOnlyList<KeyValuePair<string, int>> GetTopActivities(this DaylioData daylioData, int count = 10)
     {
         Dictionary<string, int> activityCounts = new(StringComparer.OrdinalIgnoreCase);
-        IEnumerable<DaylioCSVDataModel>? entries = daylioData.DataRepo?.CSVData;
-        if (entries is null || count <= 0)
+        IReadOnlyList<DaylioCSVDataModel> entries = daylioData.DataRepo.CSVData;
+        if (entries.Count == 0 || count <= 0)
         {
             return Array.Empty<KeyValuePair<string, int>>();
         }
@@ -84,8 +84,8 @@ public static class DaylioAnalytics
     /// <returns>The maximum consecutive days with logged entries.</returns>
     public static int GetLongestStreak(this DaylioData daylioData)
     {
-        IEnumerable<DaylioCSVDataModel>? entries = daylioData.DataRepo?.CSVData;
-        if (entries is null)
+        IReadOnlyList<DaylioCSVDataModel> entries = daylioData.DataRepo.CSVData;
+        if (entries.Count == 0)
         {
             return 0;
         }
@@ -133,7 +133,7 @@ public static class DaylioAnalytics
         Dictionary<DayOfWeek, (uint Sum, uint Count)> dayMoods = new();
         Dictionary<DayOfWeek, decimal> results = new();
 
-        if (daylioData.DataRepo?.CSVData is null)
+        if (daylioData.DataRepo.CSVData.Count == 0)
         {
             return results;
         }
@@ -173,7 +173,7 @@ public static class DaylioAnalytics
     /// <returns>An <see cref="ActivityMoodImpact"/> or null if the activity has no valid ratings.</returns>
     public static ActivityMoodImpact? GetActivityMoodImpact(this DaylioData daylioData, string activity)
     {
-        if (daylioData.DataRepo?.CSVData is null || string.IsNullOrWhiteSpace(activity))
+        if (daylioData.DataRepo.CSVData.Count == 0 || string.IsNullOrWhiteSpace(activity))
         {
             return null;
         }
@@ -230,10 +230,6 @@ public static class DaylioAnalytics
         int minOccurrences = 1)
     {
         List<ActivityMoodImpact> impacts = new();
-        if (daylioData.DataRepo is null)
-        {
-            return impacts;
-        }
 
         foreach (string activity in daylioData.DataRepo.Activities)
         {
@@ -258,8 +254,8 @@ public static class DaylioAnalytics
         int count = 10)
     {
         Dictionary<(string First, string Second), int> pairCounts = new();
-        IEnumerable<DaylioCSVDataModel>? entries = daylioData.DataRepo?.CSVData;
-        if (entries is null || count <= 0)
+        IReadOnlyList<DaylioCSVDataModel> entries = daylioData.DataRepo.CSVData;
+        if (entries.Count == 0 || count <= 0)
         {
             return Array.Empty<ActivityPairOccurrence>();
         }
@@ -318,7 +314,7 @@ public static class DaylioAnalytics
         string activity1,
         string activity2)
     {
-        if (daylioData.DataRepo?.CSVData is null ||
+        if (daylioData.DataRepo.CSVData.Count == 0 ||
             string.IsNullOrWhiteSpace(activity1) ||
             string.IsNullOrWhiteSpace(activity2) ||
             activity1.Equals(activity2, StringComparison.OrdinalIgnoreCase))
@@ -411,7 +407,7 @@ public static class DaylioAnalytics
     public static IReadOnlyDictionary<TimeOfDayPeriod, TimeOfDayMood> GetMoodByTimeOfDay(this DaylioData daylioData)
     {
         Dictionary<TimeOfDayPeriod, TimeOfDayMood> results = new();
-        if (daylioData.DataRepo?.CSVData is null)
+        if (daylioData.DataRepo.CSVData.Count == 0)
         {
             return results;
         }
@@ -465,8 +461,8 @@ public static class DaylioAnalytics
     public static StreakDetails GetStreakDetails(this DaylioData daylioData)
     {
         int longest = daylioData.GetLongestStreak();
-        IEnumerable<DaylioCSVDataModel>? entries = daylioData.DataRepo?.CSVData;
-        if (entries is null)
+        IReadOnlyList<DaylioCSVDataModel> entries = daylioData.DataRepo.CSVData;
+        if (entries.Count == 0)
         {
             return new StreakDetails(0, 0, null, null);
         }
@@ -514,7 +510,7 @@ public static class DaylioAnalytics
         int windowDays = 7)
     {
         List<DailyRollingMood> results = new();
-        if (daylioData.DataRepo?.CSVData is null || windowDays <= 0)
+        if (daylioData.DataRepo.CSVData.Count == 0 || windowDays <= 0)
         {
             return results;
         }

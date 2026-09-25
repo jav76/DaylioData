@@ -54,14 +54,58 @@ public class DaylioFileAccess
         NOTE_HEADER
     };
 
-    internal IEnumerable<DaylioCSVDataModel>? TryReadFile()
+    internal IReadOnlyList<DaylioCSVDataModel> ReadFile()
+    {
+        if (_textReader is not null)
+        {
+            return Read(_textReader);
+        }
+
+        if (string.IsNullOrWhiteSpace(_filePath))
+        {
+            throw new ArgumentException("File path must not be null or whitespace.", nameof(_filePath));
+        }
+
+        if (!File.Exists(_filePath))
+        {
+            throw new FileNotFoundException($"Daylio CSV file not found at path: '{_filePath}'.", _filePath);
+        }
+
+        using StreamReader streamReader = new(_filePath);
+        return Read(streamReader);
+    }
+
+    internal async Task<IReadOnlyList<DaylioCSVDataModel>> ReadFileAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (_textReader is not null)
+        {
+            return await ReadAsync(_textReader, cancellationToken);
+        }
+
+        if (string.IsNullOrWhiteSpace(_filePath))
+        {
+            throw new ArgumentException("File path must not be null or whitespace.", nameof(_filePath));
+        }
+
+        if (!File.Exists(_filePath))
+        {
+            throw new FileNotFoundException($"Daylio CSV file not found at path: '{_filePath}'.", _filePath);
+        }
+
+        using StreamReader streamReader = new(_filePath);
+        return await ReadAsync(streamReader, cancellationToken);
+    }
+
+    internal IReadOnlyList<DaylioCSVDataModel>? TryReadFile()
     {
         if (_textReader is not null)
         {
             return TryRead(_textReader);
         }
 
-        if (string.IsNullOrWhiteSpace(_filePath))
+        if (string.IsNullOrWhiteSpace(_filePath) || !File.Exists(_filePath))
         {
             return null;
         }
@@ -77,7 +121,7 @@ public class DaylioFileAccess
         }
     }
 
-    internal static IEnumerable<DaylioCSVDataModel>? TryRead(TextReader reader)
+    internal static IReadOnlyList<DaylioCSVDataModel> Read(TextReader reader)
     {
         CsvHelper.Configuration.CsvConfiguration readerConfig = new(CultureInfo.InvariantCulture)
         {
@@ -94,13 +138,25 @@ public class DaylioFileAccess
             using CsvReader csvReader = new(reader, readerConfig);
             return csvReader.GetRecords<DaylioCSVDataModel>().ToList();
         }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException("Failed to parse Daylio CSV data from the provided stream or reader.", ex);
+        }
+    }
+
+    internal static IReadOnlyList<DaylioCSVDataModel>? TryRead(TextReader reader)
+    {
+        try
+        {
+            return Read(reader);
+        }
         catch (Exception)
         {
             return null;
         }
     }
 
-    internal async Task<IEnumerable<DaylioCSVDataModel>?> TryReadFileAsync(CancellationToken cancellationToken = default)
+    internal async Task<IReadOnlyList<DaylioCSVDataModel>?> TryReadFileAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -109,7 +165,7 @@ public class DaylioFileAccess
             return await TryReadAsync(_textReader, cancellationToken);
         }
 
-        if (string.IsNullOrWhiteSpace(_filePath))
+        if (string.IsNullOrWhiteSpace(_filePath) || !File.Exists(_filePath))
         {
             return null;
         }
@@ -129,7 +185,7 @@ public class DaylioFileAccess
         }
     }
 
-    internal static async Task<IEnumerable<DaylioCSVDataModel>?> TryReadAsync(
+    internal static async Task<IReadOnlyList<DaylioCSVDataModel>> ReadAsync(
         TextReader reader,
         CancellationToken cancellationToken = default)
     {
@@ -155,6 +211,24 @@ public class DaylioFileAccess
             }
 
             return records;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException("Failed to parse Daylio CSV data from the provided stream or reader.", ex);
+        }
+    }
+
+    internal static async Task<IReadOnlyList<DaylioCSVDataModel>?> TryReadAsync(
+        TextReader reader,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await ReadAsync(reader, cancellationToken);
         }
         catch (OperationCanceledException)
         {

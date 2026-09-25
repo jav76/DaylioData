@@ -1,3 +1,4 @@
+using System.Globalization;
 using DaylioData.Models;
 
 namespace DaylioData.Tests;
@@ -99,5 +100,61 @@ public class DaylioSummaryTests
         Assert.Contains("TotalDays: 1", summary);
         Assert.Contains("DistinctActivitiesCount: 1", summary);
         Assert.Contains("TotalActivitiesCount: 1", summary);
+    }
+
+    [Fact]
+    public void DaylioCSVDataModel_RecordValueEquality_MatchesEquivalentRecords()
+    {
+        DaylioCSVDataModel entry1 = new()
+        {
+            FullDate = new DateOnly(2023, 1, 1),
+            Date = new DateOnly(2023, 1, 1),
+            Weekday = "Sunday",
+            Time = new TimeOnly(10, 0),
+            Mood = "good",
+            Activities = "reading | coffee",
+            NoteTitle = "Breakfast",
+            Note = "Morning reading"
+        };
+
+        DaylioCSVDataModel entry2 = new()
+        {
+            FullDate = new DateOnly(2023, 1, 1),
+            Date = new DateOnly(2023, 1, 1),
+            Weekday = "Sunday",
+            Time = new TimeOnly(10, 0),
+            Mood = "good",
+            Activities = "reading | coffee",
+            NoteTitle = "Breakfast",
+            Note = "Morning reading"
+        };
+
+        Assert.Equal(entry1, entry2);
+        Assert.Equal(2, entry1.ActivitiesCollection.Count);
+        Assert.Equal("reading", entry1.ActivitiesCollection[0]);
+        Assert.Equal("coffee", entry1.ActivitiesCollection[1]);
+
+        DaylioCSVDataModel differentWeekday = entry1 with { Weekday = "Monday" };
+        Assert.NotEqual(entry1, differentWeekday);
+    }
+
+    [Fact]
+    public void DaylioCSVDataModel_ToString_UsesInvariantCulture()
+    {
+        DaylioCSVDataModel entry = new()
+        {
+            FullDate = new DateOnly(2023, 1, 1),
+            Date = new DateOnly(2023, 1, 1),
+            Weekday = "Sunday",
+            Time = new TimeOnly(10, 0),
+            Mood = "good",
+            Activities = "walking",
+            NoteTitle = "Walk",
+            Note = "Morning"
+        };
+
+        string output = entry.ToString();
+        Assert.StartsWith("2023-01-01,", output);
+        Assert.Contains(",10:00,", output);
     }
 }

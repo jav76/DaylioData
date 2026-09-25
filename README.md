@@ -1,14 +1,24 @@
 # DaylioData
 
-A .NET library and Model Context Protocol (MCP) server for reading, querying, and analyzing exported Daylio CSV mood tracking and activity data.
+A modern .NET library and Model Context Protocol (MCP) server for reading, querying, and analyzing exported Daylio CSV mood tracking and activity data.
+
+---
 
 ## Features
 
-- **Flexible Ingestion**: Parse Daylio CSV data directly from file paths, `TextReader`, or `Stream` instances.
-- **Fluent Query API**: Filter and search entries by date-time range, mood, activity, or note text without shared static state.
-- **Rich Habit & Mood Analytics**: Calculate mood distribution, top activities, tracking streaks, day-of-week averages, time-of-day trends, and activity-to-mood impact correlations.
+- **Flexible Ingestion**: Parse Daylio CSV data directly from file paths, `TextReader`, or `Stream` instances with fail-fast validation and exception-safe `TryLoad` patterns.
+- **Direct & Fluent Query API**: Filter and search entries by date-time range, mood, activity, or note text with non-null `IReadOnlyList<T>` collection contracts and zero ambient static state.
+- **Immutable Data Models**: High-performance immutable `DaylioCSVDataModel` records with pre-cached activity collections and culture-invariant formatting.
+- **Single-Pass Cached Metrics**: Instant O(1) summary metric access with automatic cache refreshes on dataset updates.
+- **Rich Habit & Mood Analytics**: Calculate mood distributions, top activities, tracking streaks, day-of-week averages, time-of-day trends, habit synergies, and rolling mood trends.
 - **Comprehensive Reporting & Export**: Generate publication-ready Markdown reports or structured JSON payloads with one line of code.
-- **Model Context Protocol (MCP) Server**: Expose your personal Daylio dataset to AI assistants (such as Claude Desktop, Cursor, and Antigravity) with 9 analytical tools, 3 resource endpoints, and guided prompt templates.
+- **Model Context Protocol (MCP) Server**: Expose your personal Daylio dataset to AI assistants (such as Claude Desktop, Cursor, and Antigravity) with 11 analytical tools, 3 resource endpoints, and guided prompt templates.
+
+---
+
+## Upgrading to 1.0.0
+
+For breaking changes, deprecated method removals, and step-by-step upgrade instructions from `0.1.x`, see the [v1.0.0 Migration Guide](docs/MIGRATION_v1.0.md).
 
 ---
 
@@ -16,28 +26,45 @@ A .NET library and Model Context Protocol (MCP) server for reading, querying, an
 
 ### Ingesting Data
 
-You can initialize `DaylioData` using a file path, `TextReader`, or `Stream`:
+You can initialize `DaylioData` using fail-fast constructors or safe non-throwing factory methods:
 
 ```csharp
 using DaylioData;
 
-// From a local CSV file
+// Fail-fast initialization (throws FileNotFoundException or IOException on error)
 DaylioData daylioData = new("path_to_your_file.csv");
 
-// Or from a Stream / TextReader (e.g. web upload or memory stream)
+// Exception-safe loading pattern
+if (DaylioData.TryLoad("path_to_your_file.csv", out DaylioData? safeData))
+{
+    // safeData is guaranteed non-null
+}
+
+// Or asynchronously
+DaylioData asyncData = await DaylioData.LoadAsync("path_to_your_file.csv");
+
+// From a Stream or TextReader (e.g. web upload or memory stream)
 using StreamReader reader = new(stream);
 DaylioData daylioDataFromStream = new(reader);
 ```
 
 ### Accessing Summary Metrics
 
+Summary metrics are calculated in a single O(N) pass and cached for instant O(1) access:
+
 ```csharp
-string summary = daylioData.DataSummary?.GetSummary() ?? string.Empty;
+// Guaranteed non-null summary properties
+int totalEntries = daylioData.DataSummary.TotalEntries;
+int totalDays = daylioData.DataSummary.TotalDays;
+double avgPerDay = daylioData.DataSummary.AverageEntriesPerDay;
+
+// Formatted summary text
+string summaryText = daylioData.DataSummary.GetSummary();
 ```
 
-### Fluent Querying
+### Direct & Fluent Querying
 
-Query entries fluently using thread-safe extension methods:
+Query entries using direct instance methods on `DaylioData` or fluent extension methods:
 
 ```csharp
 using DaylioData;
@@ -46,14 +73,17 @@ using DaylioData.Models;
 // Query by date range
 DateTime start = new(2023, 1, 1, 0, 0, 0);
 DateTime end = new(2023, 1, 31, 23, 59, 59);
-IEnumerable<DaylioCSVDataModel>? januaryEntries = daylioData.GetEntriesInRange(start, end);
+IReadOnlyList<DaylioCSVDataModel> januaryEntries = daylioData.GetEntriesInRange(start, end);
 
-// Query by activity or mood
-IEnumerable<DaylioCSVDataModel>? codingEntries = daylioData.GetEntriesWithActivity("coding");
-IEnumerable<DaylioCSVDataModel>? radEntries = daylioData.GetEntriesWithMood("rad");
+// Query by activity or mood (returns empty list if not found, never null)
+IReadOnlyList<DaylioCSVDataModel> codingEntries = daylioData.GetEntriesWithActivity("coding");
+IReadOnlyList<DaylioCSVDataModel> radEntries = daylioData.GetEntriesWithMood("rad");
 
 // Search note text or titles
-IEnumerable<DaylioCSVDataModel>? projectNotes = daylioData.GetEntriesWithString("project");
+IReadOnlyList<DaylioCSVDataModel> projectNotes = daylioData.GetEntriesWithString("project");
+
+// Activity occurrence count
+int codingCount = daylioData.GetActivityCount("coding");
 ```
 
 ### Habit & Mood Analytics
@@ -76,14 +106,21 @@ int current = streakDetails.CurrentStreak;
 
 // Activity-to-mood impact correlation (average mood with vs. without activity)
 ActivityMoodImpact? impact = daylioData.GetActivityMoodImpact("running");
-// Or rank all activities by positive/negative mood delta:
+
+// Rank all activities by net mood impact
 IReadOnlyList<ActivityMoodImpact> allImpacts = daylioData.GetAllActivityMoodImpacts(minOccurrences: 2);
+
+// Habit synergies: co-occurring activity pairs and net mood boosts
+IReadOnlyList<ActivityPairImpact> synergies = daylioData.GetAllActivityPairImpacts(minOccurrences: 2);
+
+// Rolling 7-day smoothed mood trends
+IReadOnlyList<DailyRollingMood> trends = daylioData.GetRollingMoodTrends(windowDays: 7);
 
 // Time-of-day trends (Morning, Afternoon, Evening, Night)
 IReadOnlyDictionary<TimeOfDayPeriod, TimeOfDayMood> timeOfDayMoods = daylioData.GetMoodByTimeOfDay();
 
 // Average mood rating by day of the week
-daylioData.DataRepo?.SetDefaultMoodLevels();
+daylioData.DataRepo.SetDefaultMoodLevels();
 IReadOnlyDictionary<DayOfWeek, decimal> weekdayMoods = daylioData.GetAverageMoodByDayOfWeek();
 ```
 
@@ -164,8 +201,10 @@ If installed globally as a .NET tool:
   - `get_mood_distribution`: Get counts and percentages for each mood.
   - `get_top_activities`: List the most frequent activities.
   - `get_activity_mood_impact`: Measure whether specific habits raise or lower mood ratings.
+  - `get_activity_synergies`: Identify co-occurring habits and evaluate positive/negative compounding mood effects.
   - `get_time_of_day_trends`: Analyze mood patterns across Morning, Afternoon, Evening, and Night.
   - `get_streaks`: Retrieve current and longest tracking streaks.
+  - `get_rolling_mood_trends`: Track smoothed daily and multi-day rolling mood averages over time.
   - `generate_report`: Generate a complete Markdown summary report.
 - **Resources**:
   - `daylio://summary`: Dataset summary statistics in JSON.
