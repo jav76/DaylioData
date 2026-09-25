@@ -62,7 +62,7 @@ public class DaylioMcpTests
         using JsonDocument doc = JsonDocument.Parse(responseJson);
         JsonElement tools = doc.RootElement.GetProperty("result").GetProperty("tools");
 
-        Assert.Equal(10, tools.GetArrayLength());
+        Assert.Equal(11, tools.GetArrayLength());
         List<string> toolNames = new();
         foreach (JsonElement tool in tools.EnumerateArray())
         {
@@ -79,6 +79,7 @@ public class DaylioMcpTests
         Assert.Contains("get_streaks", toolNames);
         Assert.Contains("generate_report", toolNames);
         Assert.Contains("get_activity_synergies", toolNames);
+        Assert.Contains("get_rolling_mood_trends", toolNames);
     }
 
     [Fact]
@@ -201,5 +202,21 @@ public class DaylioMcpTests
 
         Assert.Contains("activity1", text, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("activity2", text, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ProcessMessage_GetRollingMoodTrends_ReturnsTrendsList()
+    {
+        McpServer server = new(CreateSampleData());
+        string request = "{\"jsonrpc\":\"2.0\",\"id\":12,\"method\":\"tools/call\",\"params\":{\"name\":\"get_rolling_mood_trends\",\"arguments\":{\"windowDays\":7}}}";
+
+        string responseJson = server.ProcessMessage(request);
+
+        using JsonDocument doc = JsonDocument.Parse(responseJson);
+        JsonElement content = doc.RootElement.GetProperty("result").GetProperty("content");
+        string text = content[0].GetProperty("text").GetString()!;
+
+        Assert.Contains("dailyAverageMood", text, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("rollingAverageMood", text, StringComparison.OrdinalIgnoreCase);
     }
 }
