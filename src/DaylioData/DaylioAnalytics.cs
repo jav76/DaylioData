@@ -248,6 +248,161 @@ public static class DaylioAnalytics
     }
 
     /// <summary>
+    /// Gets the most frequently co-occurring pairs of activities.
+    /// </summary>
+    /// <param name="daylioData">The <see cref="DaylioData"/> instance.</param>
+    /// <param name="count">The maximum number of pairs to return.</param>
+    /// <returns>A list of <see cref="ActivityPairOccurrence"/> ordered by frequency.</returns>
+    public static IReadOnlyList<ActivityPairOccurrence> GetTopActivityPairs(
+        this DaylioData daylioData,
+        int count = 10)
+    {
+        Dictionary<(string First, string Second), int> pairCounts = new();
+        IEnumerable<DaylioCSVDataModel>? entries = daylioData.DataRepo?.CSVData;
+        if (entries is null || count <= 0)
+        {
+            return Array.Empty<ActivityPairOccurrence>();
+        }
+
+        foreach (DaylioCSVDataModel entry in entries)
+        {
+            IReadOnlyList<string> activities = entry.ActivitiesCollection;
+            if (activities.Count < 2)
+            {
+                continue;
+            }
+
+            for (int i = 0; i < activities.Count; i++)
+            {
+                for (int j = i + 1; j < activities.Count; j++)
+                {
+                    string act1 = activities[i];
+                    string act2 = activities[j];
+                    if (act1.Equals(act2, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    string first = string.Compare(act1, act2, StringComparison.OrdinalIgnoreCase) <= 0 ? act1 : act2;
+                    string second = string.Compare(act1, act2, StringComparison.OrdinalIgnoreCase) <= 0 ? act2 : act1;
+                    (string First, string Second) key = (first, second);
+
+                    if (pairCounts.TryGetValue(key, out int current))
+                    {
+                        pairCounts[key] = current + 1;
+                    }
+                    else
+                    {
+                        pairCounts[key] = 1;
+                    }
+                }
+            }
+        }
+
+        return pairCounts
+            .OrderByDescending(x => x.Value)
+            .Take(count)
+            .Select(x => new ActivityPairOccurrence(x.Key.First, x.Key.Second, x.Value))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Calculates the mood impact and synergy when two activities are logged together compared to when neither is logged.
+    /// </summary>
+    /// <param name="daylioData">The <see cref="DaylioData"/> instance.</param>
+    /// <param name="activity1">The first activity name.</param>
+    /// <param name="activity2">The second activity name.</param>
+    /// <returns>An <see cref="ActivityPairImpact"/> or null if the pair has no valid co-occurrences.</returns>
+    public static ActivityPairImpact? GetActivityPairImpact(
+        this DaylioData daylioData,
+        string activity1,
+        string activity2)
+    {
+        if (daylioData.DataRepo?.CSVData is null ||
+            string.IsNullOrWhiteSpace(activity1) ||
+            string.IsNullOrWhiteSpace(activity2) ||
+            activity1.Equals(activity2, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        EnsureDefaultMoodLevels(daylioData);
+
+        uint sumWithBoth = 0;
+        int countWithBoth = 0;
+        uint sumWithoutEither = 0;
+        int countWithoutEither = 0;
+
+        foreach (DaylioCSVDataModel entry in daylioData.DataRepo.CSVData)
+        {
+            if (!daylioData.DataRepo.Moods.TryGetValue(entry.Mood, out short? moodLevel) || !moodLevel.HasValue)
+            {
+                continue;
+            }
+
+            bool hasAct1 = entry.ActivitiesCollection.Any(a => a.Equals(activity1, StringComparison.OrdinalIgnoreCase));
+            bool hasAct2 = entry.ActivitiesCollection.Any(a => a.Equals(activity2, StringComparison.OrdinalIgnoreCase));
+
+            if (hasAct1 && hasAct2)
+            {
+                sumWithBoth += Convert.ToUInt32(moodLevel.Value);
+                countWithBoth++;
+            }
+            else if (!hasAct1 && !hasAct2)
+            {
+                sumWithoutEither += Convert.ToUInt32(moodLevel.Value);
+                countWithoutEither++;
+            }
+        }
+
+        if (countWithBoth == 0)
+        {
+            return null;
+        }
+
+        decimal avgWithBoth = (decimal)sumWithBoth / countWithBoth;
+        decimal avgWithoutEither = countWithoutEither > 0
+            ? (decimal)sumWithoutEither / countWithoutEither
+            : avgWithBoth;
+        decimal delta = avgWithBoth - avgWithoutEither;
+
+        string first = string.Compare(activity1, activity2, StringComparison.OrdinalIgnoreCase) <= 0 ? activity1 : activity2;
+        string second = string.Compare(activity1, activity2, StringComparison.OrdinalIgnoreCase) <= 0 ? activity2 : activity1;
+
+        return new ActivityPairImpact(first, second, countWithBoth, avgWithBoth, avgWithoutEither, delta);
+    }
+
+    /// <summary>
+    /// Calculates mood impacts and synergies for all co-occurring activity pairs meeting a minimum occurrence threshold.
+    /// </summary>
+    /// <param name="daylioData">The <see cref="DaylioData"/> instance.</param>
+    /// <param name="minOccurrences">The minimum number of times a pair must co-occur.</param>
+    /// <returns>A list of <see cref="ActivityPairImpact"/> ordered from highest to lowest synergy delta.</returns>
+    public static IReadOnlyList<ActivityPairImpact> GetAllActivityPairImpacts(
+        this DaylioData daylioData,
+        int minOccurrences = 2)
+    {
+        List<ActivityPairImpact> impacts = new();
+        IReadOnlyList<ActivityPairOccurrence> topPairs = daylioData.GetTopActivityPairs(int.MaxValue);
+
+        foreach (ActivityPairOccurrence pair in topPairs)
+        {
+            if (pair.Count < minOccurrences)
+            {
+                break;
+            }
+
+            ActivityPairImpact? impact = daylioData.GetActivityPairImpact(pair.Activity1, pair.Activity2);
+            if (impact is not null)
+            {
+                impacts.Add(impact);
+            }
+        }
+
+        return impacts.OrderByDescending(x => x.Delta).ToList();
+    }
+
+    /// <summary>
     /// Calculates average mood ratings and entry counts grouped by time-of-day periods.
     /// Morning (05:00-11:59), Afternoon (12:00-16:59), Evening (17:00-21:59), Night (22:00-04:59).
     /// </summary>
@@ -372,6 +527,34 @@ public record ActivityMoodImpact(
     decimal Delta,
     int FrequencyWith,
     int FrequencyWithout);
+
+/// <summary>
+/// Represents the frequency with which two activities are logged together.
+/// </summary>
+/// <param name="Activity1">First activity name (alphabetically normalized).</param>
+/// <param name="Activity2">Second activity name (alphabetically normalized).</param>
+/// <param name="Count">Number of entries where both activities were logged.</param>
+public record ActivityPairOccurrence(
+    string Activity1,
+    string Activity2,
+    int Count);
+
+/// <summary>
+/// Represents the statistical mood synergy and impact of two activities logged together.
+/// </summary>
+/// <param name="Activity1">First activity name (alphabetically normalized).</param>
+/// <param name="Activity2">Second activity name (alphabetically normalized).</param>
+/// <param name="CoOccurrenceCount">Number of entries including both activities.</param>
+/// <param name="AverageMoodWithBoth">Average mood rating when both activities are present.</param>
+/// <param name="AverageMoodWithoutEither">Average mood rating when neither activity is present.</param>
+/// <param name="Delta">The difference (AverageMoodWithBoth - AverageMoodWithoutEither).</param>
+public record ActivityPairImpact(
+    string Activity1,
+    string Activity2,
+    int CoOccurrenceCount,
+    decimal AverageMoodWithBoth,
+    decimal AverageMoodWithoutEither,
+    decimal Delta);
 
 /// <summary>
 /// Represents the four canonical periods of a day.
