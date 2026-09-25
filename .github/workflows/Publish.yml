@@ -28,6 +28,10 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write  # Required for NuGet.org OIDC Trusted Publishing
+      contents: read
+
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
@@ -72,29 +76,34 @@ jobs:
     - name: Pack
       run: dotnet pack src/DaylioData/DaylioData.sln --no-build --configuration Release --output BuildResults ${{ steps.get_version.outputs.version_arg }}
 
-    - name: Validate NuGet API Key Secret
-      shell: bash
-      run: |
-        if [ -z "${{ secrets.NUGET_API_KEY }}" ]; then
-          echo "::error::Secret NUGET_API_KEY is not configured or empty. Please add or update it in GitHub repository secrets."
-          exit 1
-        fi
+    - name: Authenticate with NuGet (Trusted Publishing)
+      id: nuget_auth
+      continue-on-error: true
+      uses: NuGet/login@v1
+      with:
+        user: jav76
 
     - name: Push to NuGet
       env:
-        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        OIDC_TOKEN: ${{ steps.nuget_auth.outputs.NUGET_API_KEY }}
+        SECRET_TOKEN: ${{ secrets.NUGET_API_KEY }}
       shell: bash
       run: |
+        AUTH_TOKEN="${OIDC_TOKEN:-$SECRET_TOKEN}"
+        if [ -z "$AUTH_TOKEN" ]; then
+          echo "::error::No valid authentication token found. Please configure Trusted Publishing on NuGet.org for repo jav76/DaylioData, or set the NUGET_API_KEY secret."
+          exit 1
+        fi
+
         for pkg in BuildResults/*.nupkg; do
           if [ -f "$pkg" ]; then
             echo "Pushing $pkg to NuGet.org..."
             dotnet nuget push "$pkg" \
               --source "https://api.nuget.org/v3/index.json" \
-              --api-key "$NUGET_API_KEY" \
+              --api-key "$AUTH_TOKEN" \
               --skip-duplicate
           fi
         done
-
     - name: Archive Build Artifacts
       run: tar -cvf BuildResults.tar BuildResults/
 
