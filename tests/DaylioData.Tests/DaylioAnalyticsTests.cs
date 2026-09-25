@@ -129,4 +129,46 @@ public class DaylioAnalyticsTests
         Assert.Equal(new DateOnly(2023, 1, 6), details.StreakEndDate);
         Assert.Equal(new DateOnly(2023, 1, 6), details.StreakStartDate);
     }
+
+    [Fact]
+    public void GetTopActivityPairs_ReturnsCoOccurringPairs()
+    {
+        using StringReader reader = new(ANALYTICS_CSV);
+        DaylioData daylioData = new(reader);
+
+        IReadOnlyList<ActivityPairOccurrence> pairs = daylioData.GetTopActivityPairs(10);
+
+        Assert.Equal(3, pairs.Count);
+        Assert.All(pairs, p => Assert.Equal(1, p.Count));
+    }
+
+    [Fact]
+    public void GetActivityPairImpact_CalculatesSynergyDeltaAccurately()
+    {
+        using StringReader reader = new(ANALYTICS_CSV);
+        DaylioData daylioData = new(reader);
+
+        ActivityPairImpact? impact = daylioData.GetActivityPairImpact("coding", "running");
+
+        Assert.NotNull(impact);
+        Assert.Equal("coding", impact.Activity1);
+        Assert.Equal("running", impact.Activity2);
+        Assert.Equal(1, impact.CoOccurrenceCount);
+        Assert.Equal(5.0m, impact.AverageMoodWithBoth);
+        Assert.Equal(4.0m, impact.AverageMoodWithoutEither);
+        Assert.Equal(1.0m, impact.Delta);
+    }
+
+    [Fact]
+    public void GetAllActivityPairImpacts_FiltersByMinOccurrences()
+    {
+        using StringReader reader = new(ANALYTICS_CSV);
+        DaylioData daylioData = new(reader);
+
+        IReadOnlyList<ActivityPairImpact> impacts = daylioData.GetAllActivityPairImpacts(minOccurrences: 2);
+        Assert.Empty(impacts);
+
+        IReadOnlyList<ActivityPairImpact> allImpacts = daylioData.GetAllActivityPairImpacts(minOccurrences: 1);
+        Assert.Equal(3, allImpacts.Count);
+    }
 }

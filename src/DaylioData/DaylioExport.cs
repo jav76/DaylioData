@@ -93,6 +93,22 @@ public static class DaylioExport
             sb.AppendLine();
         }
 
+        // Habit Synergies
+        IReadOnlyList<ActivityPairImpact> pairImpacts = daylioData.GetAllActivityPairImpacts(minOccurrences: 2);
+        if (pairImpacts.Count > 0)
+        {
+            sb.AppendLine("## Habit Synergies (Top Co-Occurring Pairs)");
+            sb.AppendLine();
+            sb.AppendLine("| Activity Pair | Entries | Avg With Both | Avg Without | Synergy Delta |");
+            sb.AppendLine("| :--- | :--- | :--- | :--- | :--- |");
+            foreach (ActivityPairImpact pair in pairImpacts.Take(15))
+            {
+                string sign = pair.Delta >= 0 ? "+" : string.Empty;
+                sb.AppendLine(CultureInfo.InvariantCulture, $"| {pair.Activity1} & {pair.Activity2} | {pair.CoOccurrenceCount} | {pair.AverageMoodWithBoth:F2} | {pair.AverageMoodWithoutEither:F2} | {sign}{pair.Delta:F2} |");
+            }
+            sb.AppendLine();
+        }
+
         // Time-of-Day Trends
         IReadOnlyDictionary<TimeOfDayPeriod, TimeOfDayMood> timeOfDay = daylioData.GetMoodByTimeOfDay();
         if (timeOfDay.Count > 0)
@@ -141,7 +157,8 @@ public static class DaylioExport
             MoodDistribution: daylioData.GetMoodDistribution(),
             TopActivities: daylioData.GetTopActivities(15),
             ActivityImpacts: daylioData.GetAllActivityMoodImpacts(minOccurrences: 1),
-            TimeOfDayTrends: daylioData.GetMoodByTimeOfDay());
+            TimeOfDayTrends: daylioData.GetMoodByTimeOfDay(),
+            HabitSynergies: daylioData.GetAllActivityPairImpacts(minOccurrences: 1));
 
         return JsonSerializer.Serialize(payload, options);
     }
@@ -163,4 +180,5 @@ public record DaylioExportData(
     IReadOnlyDictionary<string, int> MoodDistribution,
     IReadOnlyList<KeyValuePair<string, int>> TopActivities,
     IReadOnlyList<ActivityMoodImpact> ActivityImpacts,
-    IReadOnlyDictionary<TimeOfDayPeriod, TimeOfDayMood> TimeOfDayTrends);
+    IReadOnlyDictionary<TimeOfDayPeriod, TimeOfDayMood> TimeOfDayTrends,
+    IReadOnlyList<ActivityPairImpact>? HabitSynergies = null);
