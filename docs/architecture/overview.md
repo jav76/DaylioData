@@ -12,7 +12,7 @@ The solution is organized into four distinct architectural layers:
 flowchart TB
     subgraph Layer0["0. Model Context Protocol (MCP) Server Layer (DaylioData.Mcp)"]
         Server["McpServer<br/>(Stdio JSON-RPC 2.0 Loop & State Coordinator)"]
-        Tools["ToolHandler<br/>(10 Analytical & Query MCP Tools)"]
+        Tools["ToolHandler<br/>(11 Analytical & Query MCP Tools)"]
         Resources["ResourceHandler<br/>(daylio:// Summary, Activities, Moods)"]
         Prompts["PromptHandler<br/>(Weekly Reflection & Habit Analysis Templates)"]
         Server --> Tools
@@ -56,7 +56,7 @@ flowchart TB
 
 ### 0. Model Context Protocol (MCP) Server Layer (`DaylioData.Mcp`)
 - **Components**: `McpServer`, `ToolHandler`, `ResourceHandler`, `PromptHandler`, `Program`.
-- **Responsibilities**: Implements the Model Context Protocol over stdio using JSON-RPC 2.0. Serves AI agents (such as Claude Desktop, Cursor, and Antigravity) with 10 analytical tools, 3 resource endpoints (`daylio://summary`, `daylio://activities`, `daylio://moods`), and 2 guided prompt workflows. Packaged as a standalone .NET Global Tool (`daylio-mcp`).
+- **Responsibilities**: Implements the Model Context Protocol over stdio using JSON-RPC 2.0. Serves AI agents (such as Claude Desktop, Cursor, and Antigravity) with 11 analytical tools, 3 resource endpoints (`daylio://summary`, `daylio://activities`, `daylio://moods`), and 2 guided prompt workflows. Packaged as a standalone .NET Global Tool (`daylio-mcp`).
 
 ### 1. Public Façade, Query API, Analytics & Export Layer (`DaylioData`)
 - **Components**: `DaylioData`, `DaylioQueryExtensions`, `DaylioAnalytics`, `DaylioExport`.

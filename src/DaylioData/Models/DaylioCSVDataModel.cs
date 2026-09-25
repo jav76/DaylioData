@@ -71,7 +71,7 @@ public sealed record DaylioCSVDataModel : IEquatable<DaylioCSVDataModel>
 
         return FullDate == other.FullDate &&
                Date == other.Date &&
-               Weekday == other.Weekday &&
+               string.Equals(Weekday, other.Weekday, StringComparison.Ordinal) &&
                Time == other.Time &&
                string.Equals(Mood, other.Mood, StringComparison.Ordinal) &&
                string.Equals(Activities, other.Activities, StringComparison.Ordinal) &&

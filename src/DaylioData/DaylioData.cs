@@ -312,7 +312,7 @@ public class DaylioData
             return null;
         }
 
-        uint moodSum = 0;
+        long moodSum = 0;
         uint count = 0;
 
         foreach (DaylioCSVDataModel entry in _dataRepo.CSVData)
@@ -322,7 +322,7 @@ public class DaylioData
             {
                 if (_dataRepo.Moods.TryGetValue(entry.Mood, out short? moodLevel) && moodLevel.HasValue)
                 {
-                    moodSum += Convert.ToUInt32(moodLevel.Value);
+                    moodSum += moodLevel.Value;
                     count++;
                 }
             }

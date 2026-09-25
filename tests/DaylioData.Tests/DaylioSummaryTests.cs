@@ -133,6 +133,9 @@ public class DaylioSummaryTests
         Assert.Equal(2, entry1.ActivitiesCollection.Count);
         Assert.Equal("reading", entry1.ActivitiesCollection[0]);
         Assert.Equal("coffee", entry1.ActivitiesCollection[1]);
+
+        DaylioCSVDataModel differentWeekday = entry1 with { Weekday = "Monday" };
+        Assert.NotEqual(entry1, differentWeekday);
     }
 
     [Fact]

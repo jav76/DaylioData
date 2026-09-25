@@ -66,12 +66,24 @@ public class DaylioFileAccessTests
     }
 
     [Fact]
-    public void ReadFile_WithCorruptedHeader_ThrowsInvalidDataException()
+    public void ReadFile_WithCorruptedHeader_ThrowsInvalidDataExceptionWithInnerException()
     {
         string corruptCsv = "some_random_column,another_column\n1,2\n";
         using StringReader reader = new(corruptCsv);
         DaylioFileAccess fileAccess = new(reader);
 
-        Assert.Throws<InvalidDataException>(() => fileAccess.ReadFile());
+        InvalidDataException ex = Assert.Throws<InvalidDataException>(() => fileAccess.ReadFile());
+        Assert.NotNull(ex.InnerException);
+    }
+
+    [Fact]
+    public async Task ReadFileAsync_WithCorruptedHeader_ThrowsInvalidDataExceptionWithInnerException()
+    {
+        string corruptCsv = "some_random_column,another_column\n1,2\n";
+        using StringReader reader = new(corruptCsv);
+        DaylioFileAccess fileAccess = new(reader);
+
+        InvalidDataException ex = await Assert.ThrowsAsync<InvalidDataException>(() => fileAccess.ReadFileAsync());
+        Assert.NotNull(ex.InnerException);
     }
 }

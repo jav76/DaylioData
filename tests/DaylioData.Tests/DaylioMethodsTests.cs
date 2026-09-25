@@ -168,4 +168,18 @@ public class DaylioMethodsTests
         Assert.NotNull(average);
         Assert.Equal(4.0m, average.Value);
     }
+
+    [Fact]
+    public void GetAverageActivityMood_WithNegativeMoodLevel_CalculatesWithoutOverflow()
+    {
+        using StringReader reader = new(SAMPLE_CSV);
+        DaylioData daylioData = new(reader);
+
+        daylioData.DataRepo.SetMoodLevel("good", -2);
+
+        decimal? average = daylioData.GetAverageActivityMood("reading");
+
+        Assert.NotNull(average);
+        Assert.Equal(-2.0m, average.Value);
+    }
 }

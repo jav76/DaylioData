@@ -8,7 +8,7 @@ namespace DaylioData.Repo;
 public class DaylioDataRepo
 {
     private IReadOnlyList<DaylioCSVDataModel> _CSVData = Array.Empty<DaylioCSVDataModel>();
-    private readonly DaylioFileAccess? _fileAccess;
+    private readonly DaylioFileAccess _fileAccess;
     private readonly Dictionary<string, short> _defaultMoods = new(StringComparer.OrdinalIgnoreCase)
     {
         { "rad", 5 },
@@ -60,8 +60,8 @@ public class DaylioDataRepo
 
     public void UpdateFile(string filePath)
     {
-        _fileAccess?.SetFilePath(filePath);
-        _CSVData = _fileAccess?.TryReadFile() ?? Array.Empty<DaylioCSVDataModel>();
+        _fileAccess.SetFilePath(filePath);
+        _CSVData = _fileAccess.TryReadFile() ?? Array.Empty<DaylioCSVDataModel>();
         Activities.Clear();
         Moods.Clear();
         InitializeActivities();
@@ -73,10 +73,8 @@ public class DaylioDataRepo
         string filePath,
         CancellationToken cancellationToken = default)
     {
-        _fileAccess?.SetFilePath(filePath);
-        _CSVData = _fileAccess is null
-            ? Array.Empty<DaylioCSVDataModel>()
-            : (await _fileAccess.TryReadFileAsync(cancellationToken)) ?? Array.Empty<DaylioCSVDataModel>();
+        _fileAccess.SetFilePath(filePath);
+        _CSVData = (await _fileAccess.TryReadFileAsync(cancellationToken)) ?? Array.Empty<DaylioCSVDataModel>();
         Activities.Clear();
         Moods.Clear();
         InitializeActivities();

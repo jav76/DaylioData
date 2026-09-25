@@ -58,8 +58,7 @@ public class DaylioFileAccess
     {
         if (_textReader is not null)
         {
-            IReadOnlyList<DaylioCSVDataModel>? parsed = TryRead(_textReader);
-            return parsed ?? throw new InvalidDataException("Failed to parse Daylio CSV data from the provided stream or reader.");
+            return Read(_textReader);
         }
 
         if (string.IsNullOrWhiteSpace(_filePath))
@@ -73,8 +72,7 @@ public class DaylioFileAccess
         }
 
         using StreamReader streamReader = new(_filePath);
-        IReadOnlyList<DaylioCSVDataModel>? records = TryRead(streamReader);
-        return records ?? throw new InvalidDataException($"Failed to parse Daylio CSV data from file: '{_filePath}'.");
+        return Read(streamReader);
     }
 
     internal async Task<IReadOnlyList<DaylioCSVDataModel>> ReadFileAsync(CancellationToken cancellationToken = default)
@@ -83,8 +81,7 @@ public class DaylioFileAccess
 
         if (_textReader is not null)
         {
-            IReadOnlyList<DaylioCSVDataModel>? parsed = await TryReadAsync(_textReader, cancellationToken);
-            return parsed ?? throw new InvalidDataException("Failed to parse Daylio CSV data from the provided stream or reader.");
+            return await ReadAsync(_textReader, cancellationToken);
         }
 
         if (string.IsNullOrWhiteSpace(_filePath))
@@ -98,8 +95,7 @@ public class DaylioFileAccess
         }
 
         using StreamReader streamReader = new(_filePath);
-        IReadOnlyList<DaylioCSVDataModel>? records = await TryReadAsync(streamReader, cancellationToken);
-        return records ?? throw new InvalidDataException($"Failed to parse Daylio CSV data from file: '{_filePath}'.");
+        return await ReadAsync(streamReader, cancellationToken);
     }
 
     internal IReadOnlyList<DaylioCSVDataModel>? TryReadFile()
@@ -125,7 +121,7 @@ public class DaylioFileAccess
         }
     }
 
-    internal static IReadOnlyList<DaylioCSVDataModel>? TryRead(TextReader reader)
+    internal static IReadOnlyList<DaylioCSVDataModel> Read(TextReader reader)
     {
         CsvHelper.Configuration.CsvConfiguration readerConfig = new(CultureInfo.InvariantCulture)
         {
@@ -141,6 +137,18 @@ public class DaylioFileAccess
         {
             using CsvReader csvReader = new(reader, readerConfig);
             return csvReader.GetRecords<DaylioCSVDataModel>().ToList();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException("Failed to parse Daylio CSV data from the provided stream or reader.", ex);
+        }
+    }
+
+    internal static IReadOnlyList<DaylioCSVDataModel>? TryRead(TextReader reader)
+    {
+        try
+        {
+            return Read(reader);
         }
         catch (Exception)
         {
@@ -177,7 +185,7 @@ public class DaylioFileAccess
         }
     }
 
-    internal static async Task<IReadOnlyList<DaylioCSVDataModel>?> TryReadAsync(
+    internal static async Task<IReadOnlyList<DaylioCSVDataModel>> ReadAsync(
         TextReader reader,
         CancellationToken cancellationToken = default)
     {
@@ -203,6 +211,24 @@ public class DaylioFileAccess
             }
 
             return records;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException("Failed to parse Daylio CSV data from the provided stream or reader.", ex);
+        }
+    }
+
+    internal static async Task<IReadOnlyList<DaylioCSVDataModel>?> TryReadAsync(
+        TextReader reader,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await ReadAsync(reader, cancellationToken);
         }
         catch (OperationCanceledException)
         {
