@@ -30,10 +30,40 @@ public class DaylioDataRepo
         InitializeMoods();
     }
 
+    private DaylioDataRepo(DaylioFileAccess fileAccess, IEnumerable<DaylioCSVDataModel>? csvData)
+    {
+        _fileAccess = fileAccess;
+        _CSVData = csvData;
+        InitializeActivities();
+        InitializeMoods();
+    }
+
+    internal static async Task<DaylioDataRepo> CreateAsync(
+        DaylioFileAccess fileAccess,
+        CancellationToken cancellationToken = default)
+    {
+        IEnumerable<DaylioCSVDataModel>? csvData = await fileAccess.TryReadFileAsync(cancellationToken);
+        return new DaylioDataRepo(fileAccess, csvData);
+    }
+
     public void UpdateFile(string filePath)
     {
         _fileAccess?.SetFilePath(filePath);
         _CSVData = _fileAccess?.TryReadFile();
+        Activities.Clear();
+        Moods.Clear();
+        InitializeActivities();
+        InitializeMoods();
+    }
+
+    public async Task UpdateFileAsync(
+        string filePath,
+        CancellationToken cancellationToken = default)
+    {
+        _fileAccess?.SetFilePath(filePath);
+        _CSVData = _fileAccess is null
+            ? null
+            : await _fileAccess.TryReadFileAsync(cancellationToken);
         Activities.Clear();
         Moods.Clear();
         InitializeActivities();
