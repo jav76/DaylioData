@@ -164,4 +164,247 @@ public static class DaylioAnalytics
 
         return results;
     }
+
+    /// <summary>
+    /// Calculates the impact of a specific activity on mood ratings compared to entries without it.
+    /// </summary>
+    /// <param name="daylioData">The <see cref="DaylioData"/> instance.</param>
+    /// <param name="activity">The activity to analyze.</param>
+    /// <returns>An <see cref="ActivityMoodImpact"/> or null if the activity has no valid ratings.</returns>
+    public static ActivityMoodImpact? GetActivityMoodImpact(this DaylioData daylioData, string activity)
+    {
+        if (daylioData.DataRepo?.CSVData is null || string.IsNullOrWhiteSpace(activity))
+        {
+            return null;
+        }
+
+        EnsureDefaultMoodLevels(daylioData);
+
+        uint sumWith = 0;
+        int countWith = 0;
+        uint sumWithout = 0;
+        int countWithout = 0;
+
+        foreach (DaylioCSVDataModel entry in daylioData.DataRepo.CSVData)
+        {
+            if (!daylioData.DataRepo.Moods.TryGetValue(entry.Mood, out short? moodLevel) || !moodLevel.HasValue)
+            {
+                continue;
+            }
+
+            bool containsActivity = entry.ActivitiesCollection.Any(a =>
+                a.Equals(activity, StringComparison.OrdinalIgnoreCase));
+
+            if (containsActivity)
+            {
+                sumWith += Convert.ToUInt32(moodLevel.Value);
+                countWith++;
+            }
+            else
+            {
+                sumWithout += Convert.ToUInt32(moodLevel.Value);
+                countWithout++;
+            }
+        }
+
+        if (countWith == 0)
+        {
+            return null;
+        }
+
+        decimal avgWith = (decimal)sumWith / countWith;
+        decimal avgWithout = countWithout > 0 ? (decimal)sumWithout / countWithout : avgWith;
+        decimal delta = avgWith - avgWithout;
+
+        return new ActivityMoodImpact(activity, avgWith, avgWithout, delta, countWith, countWithout);
+    }
+
+    /// <summary>
+    /// Calculates mood impact for all tracked activities and ranks them by net mood delta.
+    /// </summary>
+    /// <param name="daylioData">The <see cref="DaylioData"/> instance.</param>
+    /// <param name="minOccurrences">Minimum times an activity must be logged to be included.</param>
+    /// <returns>A list of <see cref="ActivityMoodImpact"/> ordered from highest positive to lowest negative delta.</returns>
+    public static IReadOnlyList<ActivityMoodImpact> GetAllActivityMoodImpacts(
+        this DaylioData daylioData,
+        int minOccurrences = 1)
+    {
+        List<ActivityMoodImpact> impacts = new();
+        if (daylioData.DataRepo is null)
+        {
+            return impacts;
+        }
+
+        foreach (string activity in daylioData.DataRepo.Activities)
+        {
+            ActivityMoodImpact? impact = daylioData.GetActivityMoodImpact(activity);
+            if (impact is not null && impact.FrequencyWith >= minOccurrences)
+            {
+                impacts.Add(impact);
+            }
+        }
+
+        return impacts.OrderByDescending(x => x.Delta).ToList();
+    }
+
+    /// <summary>
+    /// Calculates average mood ratings and entry counts grouped by time-of-day periods.
+    /// Morning (05:00-11:59), Afternoon (12:00-16:59), Evening (17:00-21:59), Night (22:00-04:59).
+    /// </summary>
+    /// <param name="daylioData">The <see cref="DaylioData"/> instance.</param>
+    /// <returns>A dictionary mapping each period to its <see cref="TimeOfDayMood"/> metrics.</returns>
+    public static IReadOnlyDictionary<TimeOfDayPeriod, TimeOfDayMood> GetMoodByTimeOfDay(this DaylioData daylioData)
+    {
+        Dictionary<TimeOfDayPeriod, TimeOfDayMood> results = new();
+        if (daylioData.DataRepo?.CSVData is null)
+        {
+            return results;
+        }
+
+        EnsureDefaultMoodLevels(daylioData);
+
+        Dictionary<TimeOfDayPeriod, (uint Sum, int Count)> aggregations = new()
+        {
+            { TimeOfDayPeriod.Morning, (0, 0) },
+            { TimeOfDayPeriod.Afternoon, (0, 0) },
+            { TimeOfDayPeriod.Evening, (0, 0) },
+            { TimeOfDayPeriod.Night, (0, 0) }
+        };
+
+        foreach (DaylioCSVDataModel entry in daylioData.DataRepo.CSVData)
+        {
+            if (!daylioData.DataRepo.Moods.TryGetValue(entry.Mood, out short? moodLevel) || !moodLevel.HasValue)
+            {
+                continue;
+            }
+
+            TimeOfDayPeriod period = entry.Time.Hour switch
+            {
+                >= 5 and < 12 => TimeOfDayPeriod.Morning,
+                >= 12 and < 17 => TimeOfDayPeriod.Afternoon,
+                >= 17 and < 22 => TimeOfDayPeriod.Evening,
+                _ => TimeOfDayPeriod.Night
+            };
+
+            (uint Sum, int Count) current = aggregations[period];
+            aggregations[period] = (current.Sum + Convert.ToUInt32(moodLevel.Value), current.Count + 1);
+        }
+
+        foreach (KeyValuePair<TimeOfDayPeriod, (uint Sum, int Count)> pair in aggregations)
+        {
+            if (pair.Value.Count > 0)
+            {
+                decimal avg = (decimal)pair.Value.Sum / pair.Value.Count;
+                results[pair.Key] = new TimeOfDayMood(pair.Key, avg, pair.Value.Count);
+            }
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// Calculates comprehensive tracking streak information including longest and current streaks.
+    /// </summary>
+    /// <param name="daylioData">The <see cref="DaylioData"/> instance.</param>
+    /// <returns>A <see cref="StreakDetails"/> record.</returns>
+    public static StreakDetails GetStreakDetails(this DaylioData daylioData)
+    {
+        int longest = daylioData.GetLongestStreak();
+        IEnumerable<DaylioCSVDataModel>? entries = daylioData.DataRepo?.CSVData;
+        if (entries is null)
+        {
+            return new StreakDetails(0, 0, null, null);
+        }
+
+        List<DateOnly> distinctDates = entries
+            .Select(x => x.FullDate)
+            .Distinct()
+            .OrderByDescending(x => x)
+            .ToList();
+
+        if (distinctDates.Count == 0)
+        {
+            return new StreakDetails(0, 0, null, null);
+        }
+
+        int currentStreak = 1;
+        DateOnly streakEnd = distinctDates[0];
+        DateOnly streakStart = streakEnd;
+
+        for (int i = 1; i < distinctDates.Count; i++)
+        {
+            if (distinctDates[i].DayNumber == distinctDates[i - 1].DayNumber - 1)
+            {
+                currentStreak++;
+                streakStart = distinctDates[i];
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return new StreakDetails(longest, currentStreak, streakStart, streakEnd);
+    }
+
+    private static void EnsureDefaultMoodLevels(DaylioData daylioData)
+    {
+        if (daylioData.DataRepo is not null && !daylioData.DataRepo.Moods.Values.Any(v => v.HasValue))
+        {
+            daylioData.DataRepo.SetDefaultMoodLevels();
+        }
+    }
 }
+
+/// <summary>
+/// Represents the statistical impact of an activity on mood ratings.
+/// </summary>
+/// <param name="Activity">The activity name.</param>
+/// <param name="AverageMoodWith">Average mood score when the activity is logged.</param>
+/// <param name="AverageMoodWithout">Average mood score when the activity is not logged.</param>
+/// <param name="Delta">The difference (AverageMoodWith - AverageMoodWithout).</param>
+/// <param name="FrequencyWith">Number of entries including the activity.</param>
+/// <param name="FrequencyWithout">Number of entries excluding the activity.</param>
+public record ActivityMoodImpact(
+    string Activity,
+    decimal AverageMoodWith,
+    decimal AverageMoodWithout,
+    decimal Delta,
+    int FrequencyWith,
+    int FrequencyWithout);
+
+/// <summary>
+/// Represents the four canonical periods of a day.
+/// </summary>
+public enum TimeOfDayPeriod
+{
+    Morning,
+    Afternoon,
+    Evening,
+    Night
+}
+
+/// <summary>
+/// Represents mood metrics for a specific period of the day.
+/// </summary>
+/// <param name="Period">The time-of-day period.</param>
+/// <param name="AverageMood">Average mood rating during this period.</param>
+/// <param name="EntryCount">Total number of entries in this period.</param>
+public record TimeOfDayMood(
+    TimeOfDayPeriod Period,
+    decimal AverageMood,
+    int EntryCount);
+
+/// <summary>
+/// Represents detailed tracking streak information.
+/// </summary>
+/// <param name="LongestStreak">The longest consecutive daily streak in days.</param>
+/// <param name="CurrentStreak">The most recent active consecutive daily streak in days.</param>
+/// <param name="StreakStartDate">Start date of the current streak.</param>
+/// <param name="StreakEndDate">End date of the current streak.</param>
+public record StreakDetails(
+    int LongestStreak,
+    int CurrentStreak,
+    DateOnly? StreakStartDate,
+    DateOnly? StreakEndDate);
+

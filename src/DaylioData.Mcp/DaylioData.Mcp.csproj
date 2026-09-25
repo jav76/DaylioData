@@ -1,21 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <SignAssembly>False</SignAssembly>
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Title>Daylio Data Accessor</Title>
-    <Description>A simple library for reading and organizing exported Daylio CSV data into memory.</Description>
-    <PackageProjectUrl></PackageProjectUrl>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>daylio-mcp</ToolCommandName>
+    <PackageOutputPath>..\..\BuildResults</PackageOutputPath>
+    <Title>Daylio MCP Server</Title>
+    <Description>Model Context Protocol (MCP) server for querying, analyzing, and reporting on Daylio mood and activity data.</Description>
     <RepositoryUrl>https://github.com/jav76/DaylioData</RepositoryUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <BaseOutputPath>..\..\BuildResults</BaseOutputPath>
-    <UseCommonOutputDirectory>true</UseCommonOutputDirectory>
-    <AssemblyVersion>0.1.6.0</AssemblyVersion>
-    <Version>0.1.6</Version>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <Version>0.1.0</Version>
+    <NoWarn>$(NoWarn);NU1900</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -30,10 +30,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CsvHelper" Version="32.0.3" />
+    <ProjectReference Include="..\DaylioData\DaylioData.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="DaylioData.Tests" />
   </ItemGroup>
+
 </Project>

@@ -1,4 +1,4 @@
-# This workflow will publish a nuget package
+# This workflow will build, test, pack, and publish NuGet packages
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
 
 name: Publish
@@ -9,15 +9,35 @@ on:
     branches: [ "main" ]
 
   release:
+    types: [ published ]
+
+  workflow_dispatch:
+    inputs:
+      target_version:
+        description: 'Optional package version override (leave empty to use version from project/tag)'
+        required: false
+        type: string
 
 jobs:
-  if_merged:
-    if: github.event.pull_request.merged == true
-    
-    runs-on: windows-latest
-    steps:
+  publish:
+    name: 'Publish NuGet Packages'
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
+      github.event_name == 'release' ||
+      github.event_name == 'workflow_dispatch'
 
-    - uses: actions/checkout@v4
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write  # Required for NuGet.org OIDC Trusted Publishing
+      contents: read
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
@@ -26,35 +46,69 @@ jobs:
     - name: Restore Dependencies
       run: dotnet restore src/DaylioData/DaylioData.sln
 
-    - name: Update Version Info
+    - name: Determine Package Version
+      id: get_version
+      shell: bash
       run: |
-        $projPath = "src\DaylioData\DaylioData.csproj"
-        $buildNumber = ${{ github.run_number }}
-        $content = Get-Content -path $projPath -Raw
-        if ($content -match '<AssemblyVersion>(\d+.\d+.\d+).\d+</AssemblyVersion>') {
-          $version = $matches[1]
-          $fullVersion = "$version.$buildNumber"
-          $content -replace '<AssemblyVersion>\d+.\d+.\d+.\d+</AssemblyVersion>', "<AssemblyVersion>$fullVersion</AssemblyVersion>" | Set-Content -Path $projPath
-        }
+        VERSION=""
+        if [ -n "${{ inputs.target_version }}" ]; then
+          VERSION="${{ inputs.target_version }}"
+        elif [ "${{ github.event_name }}" = "release" ]; then
+          # Strip leading 'v' if present from release tag name
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#v}"
+        fi
+
+        if [ -n "$VERSION" ]; then
+          echo "Overriding package version with: $VERSION"
+          echo "version_arg=-p:Version=$VERSION -p:PackageVersion=$VERSION" >> "$GITHUB_OUTPUT"
+        else
+          echo "Using version defined in project files."
+          echo "version_arg=" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Build
-      run: dotnet build src/DaylioData/DaylioData.sln --configuration Release --no-restore
+      run: dotnet build src/DaylioData/DaylioData.sln --configuration Release --no-restore ${{ steps.get_version.outputs.version_arg }}
 
     - name: Test
       run: dotnet test src/DaylioData/DaylioData.sln --configuration Release --no-build --verbosity normal
 
     - name: Pack
-      run: dotnet pack src/DaylioData/DaylioData.sln --no-build --configuration Release --output BuildResults
+      run: dotnet pack src/DaylioData/DaylioData.sln --no-build --configuration Release --output BuildResults ${{ steps.get_version.outputs.version_arg }}
 
-    - name: Push
+    - name: Authenticate with NuGet (Trusted Publishing)
+      id: nuget_auth
+      continue-on-error: true
+      uses: NuGet/login@v1
+      with:
+        user: jav76
+
+    - name: Push to NuGet
       env:
-        NUGET_AUTH_TOKEN: ${{ secrets.NUGET_API_KEY }}
-      run: dotnet nuget push BuildResults\*.nupkg --source "https://api.nuget.org/v3/index.json" --api-key "$env:NUGET_AUTH_TOKEN"
+        OIDC_TOKEN: ${{ steps.nuget_auth.outputs.NUGET_API_KEY }}
+        SECRET_TOKEN: ${{ secrets.NUGET_API_KEY }}
+      shell: bash
+      run: |
+        AUTH_TOKEN="${OIDC_TOKEN:-$SECRET_TOKEN}"
+        if [ -z "$AUTH_TOKEN" ]; then
+          echo "::error::No valid authentication token found. Please configure Trusted Publishing on NuGet.org for repo jav76/DaylioData, or set the NUGET_API_KEY secret."
+          exit 1
+        fi
 
-    - name: 'Archive Files'
+        for pkg in BuildResults/*.nupkg; do
+          if [ -f "$pkg" ]; then
+            echo "Pushing $pkg to NuGet.org..."
+            dotnet nuget push "$pkg" \
+              --source "https://api.nuget.org/v3/index.json" \
+              --api-key "$AUTH_TOKEN" \
+              --skip-duplicate
+          fi
+        done
+
+    - name: Archive Build Artifacts
       run: tar -cvf BuildResults.tar BuildResults/
 
-    - name: 'Upload Artifacts'
+    - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: Build-Artifacts
