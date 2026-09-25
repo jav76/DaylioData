@@ -161,6 +161,26 @@ public static class ToolHandler
                             description = "Optional custom title for the report."
                         }
                     }
+                }),
+            new(
+                "get_rolling_mood_trends",
+                "Calculates smoothed daily and rolling mood averages across a configurable day window (default 7 days).",
+                new
+                {
+                    type = "object",
+                    properties = new
+                    {
+                        windowDays = new
+                        {
+                            type = "integer",
+                            description = "Number of days in the moving window (default: 7)."
+                        },
+                        limit = new
+                        {
+                            type = "integer",
+                            description = "Maximum number of recent daily trend records to return (default: 30)."
+                        }
+                    }
                 })
         };
     }
@@ -207,6 +227,7 @@ public static class ToolHandler
             "get_time_of_day_trends" => ExecuteGetTimeOfDayTrends(daylioData),
             "get_streaks" => ExecuteGetStreaks(daylioData),
             "generate_report" => ExecuteGenerateReport(daylioData, args),
+            "get_rolling_mood_trends" => ExecuteGetRollingMoodTrends(daylioData, args),
             _ => new ToolCallResult(
                 new List<ToolCallContent> { new("text", $"Unknown tool: '{name}'") },
                 IsError: true)
@@ -481,5 +502,31 @@ public static class ToolHandler
         string report = daylioData.GenerateMarkdownReport(title);
         return new ToolCallResult(
             new List<ToolCallContent> { new("text", report) });
+    }
+
+    private static ToolCallResult ExecuteGetRollingMoodTrends(DaylioData daylioData, JsonElement? args)
+    {
+        int windowDays = 7;
+        int limit = 30;
+
+        if (args is not null)
+        {
+            if (args.Value.TryGetProperty("windowDays", out JsonElement windowElem) && windowElem.TryGetInt32(out int parsedWindow))
+            {
+                windowDays = Math.Max(1, parsedWindow);
+            }
+
+            if (args.Value.TryGetProperty("limit", out JsonElement limitElem) && limitElem.TryGetInt32(out int parsedLimit))
+            {
+                limit = Math.Max(1, parsedLimit);
+            }
+        }
+
+        IReadOnlyList<DailyRollingMood> trends = daylioData.GetRollingMoodTrends(windowDays)
+            .TakeLast(limit)
+            .ToList();
+
+        string json = JsonSerializer.Serialize(trends, JsonOptions);
+        return new ToolCallResult(new List<ToolCallContent> { new("text", json) });
     }
 }

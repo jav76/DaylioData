@@ -26,6 +26,7 @@ public class DaylioExportTests
         Assert.Contains("## Mood Distribution", report);
         Assert.Contains("## Top Activities", report);
         Assert.Contains("## Time-of-Day Mood Trends", report);
+        Assert.Contains("## Recent Mood Trends (7-Day Rolling Average)", report);
     }
 
     [Fact]
@@ -47,5 +48,7 @@ public class DaylioExportTests
         Assert.True(root.TryGetProperty("moodDistribution", out JsonElement moodDistElement));
         Assert.Equal(2, moodDistElement.GetProperty("good").GetInt32());
         Assert.Equal(2, moodDistElement.GetProperty("rad").GetInt32());
+        Assert.True(root.TryGetProperty("rollingMoodTrends", out JsonElement trendsElement));
+        Assert.Equal(4, trendsElement.GetArrayLength());
     }
 }

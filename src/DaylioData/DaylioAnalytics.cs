@@ -347,6 +347,74 @@ public static class DaylioAnalytics
         return new StreakDetails(longest, currentStreak, streakStart, streakEnd);
     }
 
+    /// <summary>
+    /// Calculates smoothed daily and rolling average mood ratings across a moving calendar day window.
+    /// Normalizes multiple check-ins per day into a daily mean before calculating the rolling window.
+    /// </summary>
+    /// <param name="daylioData">The <see cref="DaylioData"/> instance.</param>
+    /// <param name="windowDays">The number of calendar days in the moving window (default: 7).</param>
+    /// <returns>A list of <see cref="DailyRollingMood"/> records in chronological order.</returns>
+    public static IReadOnlyList<DailyRollingMood> GetRollingMoodTrends(
+        this DaylioData daylioData,
+        int windowDays = 7)
+    {
+        List<DailyRollingMood> results = new();
+        if (daylioData.DataRepo?.CSVData is null || windowDays <= 0)
+        {
+            return results;
+        }
+
+        EnsureDefaultMoodLevels(daylioData);
+
+        Dictionary<DateOnly, (uint Sum, int Count)> dailyAggregates = new();
+        foreach (DaylioCSVDataModel entry in daylioData.DataRepo.CSVData)
+        {
+            if (!daylioData.DataRepo.Moods.TryGetValue(entry.Mood, out short? moodLevel) || !moodLevel.HasValue)
+            {
+                continue;
+            }
+
+            DateOnly date = entry.FullDate;
+            if (dailyAggregates.TryGetValue(date, out (uint Sum, int Count) current))
+            {
+                dailyAggregates[date] = (current.Sum + Convert.ToUInt32(moodLevel.Value), current.Count + 1);
+            }
+            else
+            {
+                dailyAggregates[date] = (Convert.ToUInt32(moodLevel.Value), 1);
+            }
+        }
+
+        if (dailyAggregates.Count == 0)
+        {
+            return results;
+        }
+
+        List<(DateOnly Date, decimal DailyAverage, int EntryCount)> sortedDaily = dailyAggregates
+            .OrderBy(x => x.Key)
+            .Select(x => (x.Key, (decimal)x.Value.Sum / x.Value.Count, x.Value.Count))
+            .ToList();
+
+        for (int i = 0; i < sortedDaily.Count; i++)
+        {
+            (DateOnly Date, decimal DailyAverage, int EntryCount) currentDay = sortedDaily[i];
+            int minDayNumber = currentDay.Date.DayNumber - (windowDays - 1);
+
+            List<(DateOnly Date, decimal DailyAverage, int EntryCount)> window = sortedDaily
+                .Where(d => d.Date.DayNumber >= minDayNumber && d.Date.DayNumber <= currentDay.Date.DayNumber)
+                .ToList();
+
+            decimal rollingAverage = window.Sum(w => w.DailyAverage) / window.Count;
+            results.Add(new DailyRollingMood(
+                currentDay.Date,
+                currentDay.DailyAverage,
+                rollingAverage,
+                currentDay.EntryCount));
+        }
+
+        return results;
+    }
+
     private static void EnsureDefaultMoodLevels(DaylioData daylioData)
     {
         if (daylioData.DataRepo is not null && !daylioData.DataRepo.Moods.Values.Any(v => v.HasValue))
@@ -407,4 +475,17 @@ public record StreakDetails(
     int CurrentStreak,
     DateOnly? StreakStartDate,
     DateOnly? StreakEndDate);
+
+/// <summary>
+/// Represents normalized daily mood and its moving calendar rolling average.
+/// </summary>
+/// <param name="Date">The calendar date of the entry.</param>
+/// <param name="DailyAverageMood">The average mood rating for this specific day.</param>
+/// <param name="RollingAverageMood">The rolling average mood rating computed across the active window.</param>
+/// <param name="EntryCount">The number of journal entries logged on this day.</param>
+public record DailyRollingMood(
+    DateOnly Date,
+    decimal DailyAverageMood,
+    decimal RollingAverageMood,
+    int EntryCount);
 

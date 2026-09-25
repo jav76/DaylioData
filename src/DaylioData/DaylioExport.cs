@@ -108,6 +108,21 @@ public static class DaylioExport
             sb.AppendLine();
         }
 
+        // Recent Mood Trends (7-Day Rolling Average)
+        IReadOnlyList<DailyRollingMood> trends = daylioData.GetRollingMoodTrends(windowDays: 7);
+        if (trends.Count > 0)
+        {
+            sb.AppendLine("## Recent Mood Trends (7-Day Rolling Average)");
+            sb.AppendLine();
+            sb.AppendLine("| Date | Daily Avg | 7-Day Rolling Avg | Entries |");
+            sb.AppendLine("| :--- | :--- | :--- | :--- |");
+            foreach (DailyRollingMood day in trends.TakeLast(10))
+            {
+                sb.AppendLine(CultureInfo.InvariantCulture, $"| {day.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)} | {day.DailyAverageMood:F2} | {day.RollingAverageMood:F2} | {day.EntryCount} |");
+            }
+            sb.AppendLine();
+        }
+
         return sb.ToString();
     }
 
@@ -141,7 +156,8 @@ public static class DaylioExport
             MoodDistribution: daylioData.GetMoodDistribution(),
             TopActivities: daylioData.GetTopActivities(15),
             ActivityImpacts: daylioData.GetAllActivityMoodImpacts(minOccurrences: 1),
-            TimeOfDayTrends: daylioData.GetMoodByTimeOfDay());
+            TimeOfDayTrends: daylioData.GetMoodByTimeOfDay(),
+            RollingMoodTrends: daylioData.GetRollingMoodTrends(windowDays: 7));
 
         return JsonSerializer.Serialize(payload, options);
     }
@@ -163,4 +179,5 @@ public record DaylioExportData(
     IReadOnlyDictionary<string, int> MoodDistribution,
     IReadOnlyList<KeyValuePair<string, int>> TopActivities,
     IReadOnlyList<ActivityMoodImpact> ActivityImpacts,
-    IReadOnlyDictionary<TimeOfDayPeriod, TimeOfDayMood> TimeOfDayTrends);
+    IReadOnlyDictionary<TimeOfDayPeriod, TimeOfDayMood> TimeOfDayTrends,
+    IReadOnlyList<DailyRollingMood>? RollingMoodTrends = null);
