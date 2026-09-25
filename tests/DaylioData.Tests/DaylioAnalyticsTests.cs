@@ -171,4 +171,48 @@ public class DaylioAnalyticsTests
         IReadOnlyList<ActivityPairImpact> allImpacts = daylioData.GetAllActivityPairImpacts(minOccurrences: 1);
         Assert.Equal(3, allImpacts.Count);
     }
+
+    [Fact]
+    public void GetRollingMoodTrends_NormalizesMultipleEntriesPerDayAndAppliesRollingWindow()
+    {
+        string multiEntryCsv =
+            "full_date,date,weekday,time,mood,activities,note_title,note\n" +
+            "2023-01-01,2023-01-01,Sunday,09:00,good,walking,Morning,Walk\n" +
+            "2023-01-01,2023-01-01,Sunday,19:00,rad,reading,Evening,Book\n" +
+            "2023-01-02,2023-01-02,Monday,10:00,meh,coding,Work,Code\n" +
+            "2023-01-03,2023-01-03,Tuesday,12:00,good,running,Lunch,Run\n";
+
+        using StringReader reader = new(multiEntryCsv);
+        DaylioData daylioData = new(reader);
+
+        // Day 1: good(4) + rad(5) = avg 4.5, count 2. Rolling (1 day): 4.5
+        // Day 2: meh(3) = avg 3.0, count 1. Rolling (2 days in 7d): (4.5 + 3.0) / 2 = 3.75
+        // Day 3: good(4) = avg 4.0, count 1. Rolling (3 days in 7d): (4.5 + 3.0 + 4.0) / 3 = 3.8333...
+        IReadOnlyList<DailyRollingMood> trends = daylioData.GetRollingMoodTrends(windowDays: 7);
+
+        Assert.Equal(3, trends.Count);
+        Assert.Equal(new DateOnly(2023, 1, 1), trends[0].Date);
+        Assert.Equal(4.5m, trends[0].DailyAverageMood);
+        Assert.Equal(4.5m, trends[0].RollingAverageMood);
+        Assert.Equal(2, trends[0].EntryCount);
+
+        Assert.Equal(new DateOnly(2023, 1, 2), trends[1].Date);
+        Assert.Equal(3.0m, trends[1].DailyAverageMood);
+        Assert.Equal(3.75m, trends[1].RollingAverageMood);
+        Assert.Equal(1, trends[1].EntryCount);
+
+        Assert.Equal(new DateOnly(2023, 1, 3), trends[2].Date);
+        Assert.Equal(4.0m, trends[2].DailyAverageMood);
+        Assert.True(trends[2].RollingAverageMood > 3.83m && trends[2].RollingAverageMood < 3.84m);
+    }
+
+    [Fact]
+    public void GetRollingMoodTrends_WithEmptyData_ReturnsEmptyList()
+    {
+        using StringReader reader = new("full_date,date,weekday,time,mood,activities,note_title,note\n");
+        DaylioData daylioData = new(reader);
+
+        IReadOnlyList<DailyRollingMood> trends = daylioData.GetRollingMoodTrends(windowDays: 7);
+        Assert.Empty(trends);
+    }
 }
