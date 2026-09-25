@@ -163,6 +163,26 @@ public static class ToolHandler
                     }
                 }),
             new(
+                "get_activity_synergies",
+                "Calculates mood synergies and co-occurrence frequency for pairs of activities logged together.",
+                new
+                {
+                    type = "object",
+                    properties = new
+                    {
+                        minOccurrences = new
+                        {
+                            type = "integer",
+                            description = "Minimum number of co-occurrences required to include a pair (default: 2)."
+                        },
+                        count = new
+                        {
+                            type = "integer",
+                            description = "Maximum number of synergy pairs to return (default: 15)."
+                        }
+                    }
+                }),
+            new(
                 "get_rolling_mood_trends",
                 "Calculates smoothed daily and rolling mood averages across a configurable day window (default 7 days).",
                 new
@@ -227,6 +247,7 @@ public static class ToolHandler
             "get_time_of_day_trends" => ExecuteGetTimeOfDayTrends(daylioData),
             "get_streaks" => ExecuteGetStreaks(daylioData),
             "generate_report" => ExecuteGenerateReport(daylioData, args),
+            "get_activity_synergies" => ExecuteGetActivitySynergies(daylioData, args),
             "get_rolling_mood_trends" => ExecuteGetRollingMoodTrends(daylioData, args),
             _ => new ToolCallResult(
                 new List<ToolCallContent> { new("text", $"Unknown tool: '{name}'") },
@@ -502,6 +523,32 @@ public static class ToolHandler
         string report = daylioData.GenerateMarkdownReport(title);
         return new ToolCallResult(
             new List<ToolCallContent> { new("text", report) });
+    }
+
+    private static ToolCallResult ExecuteGetActivitySynergies(DaylioData daylioData, JsonElement? args)
+    {
+        int minOccurrences = 2;
+        int count = 15;
+
+        if (args is not null)
+        {
+            if (args.Value.TryGetProperty("minOccurrences", out JsonElement minElement) && minElement.TryGetInt32(out int parsedMin))
+            {
+                minOccurrences = Math.Max(1, parsedMin);
+            }
+
+            if (args.Value.TryGetProperty("count", out JsonElement countElement) && countElement.TryGetInt32(out int parsedCount))
+            {
+                count = Math.Max(1, parsedCount);
+            }
+        }
+
+        IReadOnlyList<ActivityPairImpact> synergies = daylioData.GetAllActivityPairImpacts(minOccurrences)
+            .Take(count)
+            .ToList();
+
+        string json = JsonSerializer.Serialize(synergies, JsonOptions);
+        return new ToolCallResult(new List<ToolCallContent> { new("text", json) });
     }
 
     private static ToolCallResult ExecuteGetRollingMoodTrends(DaylioData daylioData, JsonElement? args)
