@@ -76,8 +76,16 @@ jobs:
     - name: Pack
       run: dotnet pack src/DaylioData/DaylioData.sln --no-build --configuration Release --output BuildResults ${{ steps.get_version.outputs.version_arg }}
 
-    - name: Authenticate with NuGet (Trusted Publishing)
+    - name: Authenticate with NuGet (Trusted Publishing - jav26122)
       id: nuget_auth
+      continue-on-error: true
+      uses: NuGet/login@v1
+      with:
+        user: jav26122
+
+    - name: Authenticate with NuGet (Trusted Publishing - jav76)
+      if: steps.nuget_auth.outputs.NUGET_API_KEY == ''
+      id: nuget_auth_fallback
       continue-on-error: true
       uses: NuGet/login@v1
       with:
@@ -85,7 +93,7 @@ jobs:
 
     - name: Push to NuGet
       env:
-        OIDC_TOKEN: ${{ steps.nuget_auth.outputs.NUGET_API_KEY }}
+        OIDC_TOKEN: ${{ steps.nuget_auth.outputs.NUGET_API_KEY || steps.nuget_auth_fallback.outputs.NUGET_API_KEY }}
         SECRET_TOKEN: ${{ secrets.NUGET_API_KEY }}
       shell: bash
       run: |
