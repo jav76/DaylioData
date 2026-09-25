@@ -5,7 +5,11 @@ name: Build
 
 on:
   push:
+    branches:
+      - main
+      - "*.*.*"
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -18,7 +22,9 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: |
+          8.0.x
+          10.0.x
         
     - name: Restore dependencies
       run: dotnet restore src/DaylioData/DaylioData.sln

@@ -7,7 +7,7 @@ Thank you for your interest in contributing to DaylioData!
 ## Quickstart for Contributors
 
 ### 1. Prerequisites
-- **[.NET 8+ SDK](https://dotnet.microsoft.com/)** (`v8.0.0+`)
+- **[.NET 10+ SDK](https://dotnet.microsoft.com/)** (`v10.0.0+` with .NET 8.0 and .NET 10.0 runtimes for multi-target testing)
 
 ### 2. Fork & Clone
 ```bash
